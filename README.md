@@ -133,3 +133,19 @@ Pattern-Based Constraint Satisfaction and Logic Puzzles (c) 2012
   be proved without using the axiom on columns, then the rule deduced from it by
   systematically replacing the word "row" by "block" and the word "column" by
   "square" is valid.
+
+
+
+Files for the sudoku solver library:
+- solve.h: interface for the solver
+- solve_mask.c: implementation of the solver
+
+files for the unit testing:
+- terminal.h: defines the interface to communicate with the standard output terminal.
+- terminal.c: implementation and declaration of the callback function for event and message handlers.
+- main.c: calls the solver for the user defined grid. Use option `-h` for usage.
+- Top95.sudoku: list of grids
+- sudoku.ksh: a script that solves the grids declared in Top95.sudoku
+
+Makes use of [dancing links library](https://github.com/farhiongit/dancing-links) for the implementation of the
+Exact cover search method of resolution.
