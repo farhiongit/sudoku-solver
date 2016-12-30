@@ -178,10 +178,12 @@ msgstr "Segment %c%c-%c%c"
 msgid "Grid is not valid.\n"
 msgstr "Grid is not valid.\n"
 
-#: solve_mask.c:1853
+#: solve_mask.c:1853 solve_mask.c:1993
 #, c-format
-msgid "%i solution%s found.\n"
-msgstr "%i solution%s found.\n"
+msgid "%i solution found.\n"
+msgid_plural "%i solutions found.\n"
+msgstr[0] "%i solution found.\n"
+msgstr[1] "%i solutions found.\n"
 
 #: solve_mask.c:1854
 #, c-format
@@ -233,11 +235,6 @@ msgstr "\tSteps: %i\n"
 msgid "\tHypothesis: %i\n"
 msgstr "\tHypothesis: %i\n"
 
-#: solve_mask.c:1992
-#, c-format
-msgid "%i solutions found.\n"
-msgstr "%i solutions found.\n"
-
-#: solve_mask.c:1993
+#: solve_mask.c:1994
 msgid "Solved using exact cover search method.\n"
 msgstr "Solved using exact cover search method.\n"

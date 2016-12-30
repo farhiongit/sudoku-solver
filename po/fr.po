@@ -178,10 +178,12 @@ msgstr "Zone %c%c-%c%c"
 msgid "Grid is not valid.\n"
 msgstr "La grille n'est pas valide.\n"
 
-#: solve_mask.c:1853
+#: solve_mask.c:1853 solve_mask.c:1993
 #, c-format
-msgid "%i solution%s found.\n"
-msgstr "%i solution%s trouvées.\n"
+msgid "%i solution found.\n"
+msgid_plural "%i solutions found.\n"
+msgstr[0] "%i solution a été trouvée.\n"
+msgstr[1] "%i solutions ont été trouvées.\n"
 
 #: solve_mask.c:1854
 #, c-format
@@ -233,11 +235,6 @@ msgstr "\tEtape : %i\n"
 msgid "\tHypothesis: %i\n"
 msgstr "\tDevinette : %i\n"
 
-#: solve_mask.c:1992
-#, c-format
-msgid "%i solutions found.\n"
-msgstr "%i solutions ont été trouvées.\n"
-
-#: solve_mask.c:1993
+#: solve_mask.c:1994
 msgid "Solved using exact cover search method.\n"
 msgstr "Résolu par la méthode de recherche de couverture exact.\n"

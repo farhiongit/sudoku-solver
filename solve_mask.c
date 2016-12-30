@@ -1850,7 +1850,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
-        MESSAGE_APPEND (rule, _("%i solution%s found.\n"), theStats.nbSolutions, (theStats.nbSolutions > 1 ? "s" : ""));
+        MESSAGE_APPEND (rule, ngettext("%i solution found.\n", "%i solutions found.\n", theStats.nbSolutions), theStats.nbSolutions);
         MESSAGE_APPEND (rule, _("Solved with %i rules and %i hypothesis.\n"), theStats.nbRules,
                         theStats.backtrackingTries);
         MESSAGE_APPEND (rule, _("Cell Exclusion:\n"));
@@ -1989,7 +1989,8 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
 
     // Searching for solutions covering exactly the matrix.
     char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
-    MESSAGE_APPEND (rule, _("%i solutions found.\n"), dlx_exact_cover_search (sudoku, find == FIRST ? 1 : 0));
+    unsigned long nbsol = dlx_exact_cover_search (sudoku, find == FIRST ? 1 : 0);
+    MESSAGE_APPEND (rule, ngettext("%i solution found.\n", "%i solutions found.\n", nbsol), nbsol);
     MESSAGE_APPEND (rule, _("Solved using exact cover search method.\n"));
     sudoku_on_message ((uintptr_t) sudoku, get_message_args (rule, 0));
 
