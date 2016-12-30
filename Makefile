@@ -37,11 +37,17 @@ test: all
 messages: SUDOKU_SOLVER
 
 .PHONY: SUDOKU_SOLVER
-SUDOKU_SOLVER: $(SOLVE_C)
-	xgettext --no-wrap --omit-header -LC -ppo -d "$@" -k_ $(SOLVE_C)
-	@mv po/"$@".po po/"$@".pot
-	(cd po ; msginit --no-wrap --no-translator -lfr_FR.utf8 || msgmerge --verbose -U fr.po SUDOKU_SOLVER.pot || :)
-	(cd po ; msginit --no-wrap --no-translator -len_US.utf8 || msgmerge --verbose -U en_US.po SUDOKU_SOLVER.pot || :)
+SUDOKU_SOLVER: po/fr.po po/en_US.po
+
+po/SUDOKU_SOLVER.pot: $(SOLVE_C)
+	xgettext --no-wrap --omit-header -LC -ppo -d SUDOKU_SOLVER -k_ $(SOLVE_C)
+	@mv po/SUDOKU_SOLVER.po po/SUDOKU_SOLVER.pot
+
+po/fr.po: po/SUDOKU_SOLVER.pot
+	(cd po ; msginit --no-wrap --no-translator -lfr_FR.utf8 || msgmerge --verbose -U fr.po SUDOKU_SOLVER.pot ; touch fr.po)
+
+po/en_US.po: po/SUDOKU_SOLVER.pot
+	(cd po ; msginit --no-wrap --no-translator -len_US.utf8 || msgmerge --verbose -U en_US.po SUDOKU_SOLVER.pot ; touch en_US.po)
 
 $(EXE): $(OBJS) ../knuth_dancing_links/libdlx.a
 	$(CC) $(CFLAGS) $(LD_OPT) -o $@ $(OBJS) -L"$(LIBPATH)" -ldlx
