@@ -140,7 +140,7 @@ Files for the sudoku solver library:
 - solve.h: interface for the solver
 - solve_mask.c: implementation of the solver
 
-files for the unit testing:
+Files for the unit testing:
 - terminal.h: defines the interface to communicate with the standard output terminal.
 - terminal.c: implementation and declaration of the callback function for event and message handlers.
 - main.c: calls the solver for the user defined grid. Use option `-h` for usage.
@@ -149,3 +149,6 @@ files for the unit testing:
 
 Makes use of [dancing links library](https://github.com/farhiongit/dancing-links) for the implementation of the
 Exact cover search method of resolution.
+
+Makes use of [GNU `gettext`](https://www.gnu.org/software/gettext/manual/index.html) for the internationalization of messages displayed.
+Files po/en_US.po and po/fr.po contains messages in english and in french.
