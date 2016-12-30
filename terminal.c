@@ -1,7 +1,9 @@
+
 /**
  * @file
  * Terminal interface for sudoku solver.
  */
+
 /***********************************************************************************
 * Author: Laurent Farhi                                                            *
 * Name: terminal.c                                                                 *
@@ -33,17 +35,21 @@
 #include "solve.h"
 #include "terminal.h"
 
+/// Display mode.
 static display sudokuDisplay;
+
+/// Flag indicating that a user input is required before proceeding.
 static int askAgain = 1;
 
 /// Event handler to display the sudoku grid.
-/// @param[in] id Grid identifier
-/// @param[in] evt_args Event to be processed
+/// @param [in] id Grid identifier
+/// @param [in] evt_args Event to be processed
 static void
 grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
 {
   static int nbCells;
   int ok[9][9];
+
   for (int l = 0; l < 9; l++)
     for (int c = 0; c < 9; c++)
     {
@@ -62,6 +68,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
     }
 
   display d = 0;
+
   if (sudokuDisplay == RULES)
     d = RULES;
   else if (nbCells && (evt_args.nbCells != 81) && (sudokuDisplay & VERBOSE))
@@ -128,6 +135,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
       for (int c = 1; c <= 9; c++)
       {
         int val = 0;
+
         for (int v = 1; v <= 9; v++)
         {
           if (evt_args.grid[l][c - 1][v - 1])
@@ -165,6 +173,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
       for (int c = 0; c < 9; c++)
       {
         int val = 0;
+
         for (int v = 1; v <= 9; v++)
         {
           if (evt_args.grid[l][c][v - 1])
@@ -187,8 +196,8 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
 }
 
 /// Event handler for interactive mode.
-/// @param[in] id Grid identifier
-/// @param[in] evt_args Event to be processed
+/// @param [in] id Grid identifier
+/// @param [in] evt_args Event to be processed
 static void
 ask (uintptr_t id, sudoku_grid_event_args evt_args)
 {
@@ -255,8 +264,8 @@ ask (uintptr_t id, sudoku_grid_event_args evt_args)
 }
 
 /// Message handler to display a message.
-/// @param[in] id Grid identifier
-/// @param[in] msg_args Message to be processed
+/// @param [in] id Grid identifier
+/// @param [in] msg_args Message to be processed
 static void
 print_message (uintptr_t id, sudoku_message_args msg_args)
 {
@@ -270,9 +279,15 @@ print_message (uintptr_t id, sudoku_message_args msg_args)
 }
 
 /**************************************************/
+
 /* Terminal manager */
+
 /**************************************************/
+
+/// Previous terminal setting to restore them at the end of execution.
 static struct termios old_tio;
+
+/// Flag indicating the terminal has been configured.
 static int termios_init = 0;
 
 /// User terminal (standard input stream, that is keyboard) initialization.
@@ -288,13 +303,14 @@ terminal_init (void)
 
   /* unbuffered_input */
   struct termios new_tio;
+
   /* get the terminal settings for stdin */
   if (tcgetattr (STDIN_FILENO, &old_tio))
     return;
 
   termios_init = 1;
 
-  /* we want to keep the old setting to restore them a the end */
+  /* we want to keep the old setting to restore them at the end */
   new_tio = old_tio;
   /* disable canonical mode (buffered i/o) and local echo */
   new_tio.c_lflag &= (~ICANON & ~ECHO);
@@ -325,6 +341,7 @@ terminal_set (int iflag)
   if (iflag)
   {
     struct termios st;
+
     if (tcgetattr (STDIN_FILENO, &st) < 0)
       fprintf (stderr, "No standard input available. Interactive mode disabled.\n");
     else if (tcgetattr (STDOUT_FILENO, &st) < 0)
@@ -358,7 +375,7 @@ terminal_display_get (void)
 }
 
 /// Set display mode.
-/// @param[in] Display mode to set.
+/// @param [in] d mode to set.
 /// @return Previous display mode.
 display
 terminal_display_set (display d)
@@ -374,6 +391,7 @@ terminal_display_set (display d)
           (d & VERBOSE ? " CANDIDATES" : ""), (d & RULES ? " RULES" : ""));
 
   display old = sudokuDisplay;
+
   sudokuDisplay = d;
   return (old);
 }

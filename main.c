@@ -1,3 +1,4 @@
+
 /**
  * @file
  * Invokes sudoku solver.
@@ -69,6 +70,7 @@ getdigit (const char *initString)
   }
 
   int c = 0;
+
   do
   {
     if (pos && (c = *(pos++)))  // char to int conversion here
@@ -106,7 +108,7 @@ main (int argc, char *argv[])
     "1.......2" ".9.4...5." "..6...7.." ".5.9.3..." "....7...." "...85..4." "7.....6.." ".3...9.8." "..2.....1",
     "7...85..." ".81......" ".43....59" "......3.1" "2..4..7.." ".3...7.9." ".15......" "....5.2.3" "....98...",
     "7...85..7" ".81......" ".43....59" "......3.1" "2..4..7.." ".3...7.9." ".15......" "....5.2.3" "....98...",
-    "76.5..2.." "1.2.4..78" "..4..851." ".....3..." "..71.2..." "9...876.." "..6....3." ".1.7..8.." ".43..9...",   // BestWestern Ypsilon Essen (fake sudoku)
+    "76.5..2.." "1.2.4..78" "..4..851." ".....3..." "..71.2..." "9...876.." "..6....3." ".1.7..8.." ".43..9...",        // BestWestern Ypsilon Essen (fake sudoku)
   };
 
   setlocale (LC_ALL, "");
@@ -120,6 +122,7 @@ main (int argc, char *argv[])
 
   // Command-line options
   const char options[] = "qivgrchfBET:";
+
   opterr = 1;
   for (int letter = 0; (letter = getopt (argc, argv, options)) >= 0;)
   {
@@ -136,7 +139,8 @@ main (int argc, char *argv[])
       printf ("\nUsage:\n  %s [-vhABigcrq] [-T n] [grid]\n", basename (argv[0]));
       printf ("\nArgument:\n");
       printf ("    'grid' is the sequence of the 81 characters (9x9 cells) of the sudoku grid :\n");
-      printf ("      1 to 9, 0 or . for an empty cell, other characters (including space and end-of-line) are ignored.\n");
+      printf
+        ("      1 to 9, 0 or . for an empty cell, other characters (including space and end-of-line) are ignored.\n");
       printf ("      For example:\n\n%s\n", TEST_GRID[0]);
       printf ("      \nor\n\n7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n\n");
       printf ("    If the argument 'grid' is omitted or is '-', it is read from the standard input.\n");
@@ -195,6 +199,7 @@ main (int argc, char *argv[])
     else if (letter == 'T')
     {
       char *endptr = 0;
+
       if ((test = strtol (optarg, &endptr, 10)) < 0 || *endptr)
         test = 0;;
     }
@@ -215,6 +220,7 @@ main (int argc, char *argv[])
   int initGrid[9][9];
 
   const char *initString = 0;
+
   if (test >= 0)                // for demo or debugging purposes
   {
     if (test >= 1 && test <= sizeof (TEST_GRID) / sizeof (const char *))
@@ -245,6 +251,7 @@ main (int argc, char *argv[])
   for (i = 0; i < 81 && ((c = getdigit (initString)) != EOF); i++)
   {
     int j;
+
     for (j = 9; j >= 0 && (c != digits[j]); j--)
       /* nothing */ ;
     initGrid[i / 9][i % 9] = j;
@@ -281,5 +288,6 @@ main (int argc, char *argv[])
 
   // Processing...
   int ret = sudoku_solve (initGrid, method, find);
+
   exit (ret == EXACT_COVER ? 3 : ret == BACKTRACKING ? 2 : ret == ELIMINATION ? 1 : 0);
 }                               // main

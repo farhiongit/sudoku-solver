@@ -147,8 +147,10 @@ Files for the unit testing:
 - Top95.sudoku: list of grids
 - sudoku.ksh: a script that solves the grids declared in Top95.sudoku
 
-Makes use of [dancing links library](https://github.com/farhiongit/dancing-links) for the implementation of the
+The implementation:
+- Makes use of [dancing links library](https://github.com/farhiongit/dancing-links) for the implementation of the
 Exact cover search method of resolution.
+Environnement variable `LIBPATH` should be set to the directory containing the library `libdlx.a` before compiling wiht `make`.
 
-Makes use of [GNU `gettext`](https://www.gnu.org/software/gettext/manual/index.html) for the internationalization of messages displayed.
+- Makes use of [GNU `gettext`](https://www.gnu.org/software/gettext/manual/index.html) for the internationalization of messages displayed.
 Files po/en_US.po and po/fr.po contains messages in english and in french.

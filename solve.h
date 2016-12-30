@@ -1,3 +1,4 @@
+
 /**
  * @file
  * Sudoku solver interface.
@@ -43,8 +44,8 @@ typedef enum
 /// Type definition for events
 typedef struct sudoku_grid_event_args
 {
-  int grid[9][9][9]; ///< Grid of 9 rows, 9 columns and 9 candidate values
-  int nbCells; ///< Number of cells for which the possible value has been found.
+  int grid[9][9][9];            ///< Grid of 9 rows, 9 columns and 9 candidate values
+  int nbCells;                  ///< Number of cells for which the possible value has been found.
 } sudoku_grid_event_args;
 
 /// Type definition for callback functions called on events.
@@ -63,8 +64,8 @@ void sudoku_grid_event_handler_remove (sudokuGridEventType event_type, sudoku_gr
 /// Type definition for messages
 typedef struct sudoku_message_args
 {
-  const char *rule; ///< Text of the rule
-  int verbosity;    ///< Level of the rule
+  const char *rule;             ///< Text of the rule
+  int verbosity;                ///< Level of the rule
 } sudoku_message_args;
 
 /// Type definition for callback functions called on message.
@@ -84,17 +85,17 @@ void sudoku_all_handlers_clear ();
 /// Enumeration of methods avalaible and used for solving
 typedef enum
 {
-  NONE,  ///< None, when the grid can not be solved.
-  BACKTRACKING,  ///< Brut force using backtracking
-  ELIMINATION,   ///< Elimination (human behavior)
-  EXACT_COVER    ///< Exact cover search using dancing links algorithm (brut force)
+  NONE,                         ///< None, when the grid can not be solved.
+  BACKTRACKING,                 ///< Brut force using backtracking
+  ELIMINATION,                  ///< Elimination (human behavior)
+  EXACT_COVER                   ///< Exact cover search using dancing links algorithm (brut force)
 } method;
 
 /// Option to search for the first or all of the possible solutions.
 typedef enum
 {
-  FIRST, ///< First only
-  ALL    ///< All of the solutions
+  FIRST,                        ///< First only
+  ALL                           ///< All of the solutions
 } findSolutions;
 
 /// Solves the sudoku grid.

@@ -1,3 +1,4 @@
+
 /**
  * @file
  * Implements algorithms to solve sudoku puzzles.
@@ -183,16 +184,25 @@
 #define bindtextdomain(PACKAGE, String)
 #endif
 
+/// Version of the implementation.
 #define SUDOKU_SOLVE_VERSION "2.1"
+
+/// Maximum length of messages to be displayed.
 #define SUDOKU_MAX_MESSAGE_LENGTH 1001
 
+/// Append text to the end of a string.
+/// @param [in] str String to be appended.
+/// @param [in] size Maximum length of the string.
+/// @param [in] ... Variable list of arguments following the printf convention.
 static int
 strnadd (char *str, size_t size, ...)
 {
   int ret;
   va_list ap;
+
   va_start (ap, size);
   const char *format = va_arg (ap, const char *);
+
   ret = vsnprintf (str + strlen (str), size - 1 - strlen (str), format, ap);
   va_end (ap);
   return ret;
@@ -207,14 +217,16 @@ strnadd (rule, sizeof(rule) / sizeof(*rule), __VA_ARGS__)
 /// Definition of a list event handlers.
 typedef struct sudoku_grid_event_handler_list
 {
-  sudoku_grid_event_handler handler; ///< Function pointer
-  struct sudoku_grid_event_handler_list *next; ///< Pointer to the next element of the list
+  sudoku_grid_event_handler handler;    ///< Function pointer
+  struct sudoku_grid_event_handler_list *next;  ///< Pointer to the next element of the list
 } sudoku_grid_event_handler_list;
 
 /// Handlers to be called on grid initialization.
 static sudoku_grid_event_handler_list *sudokuOnInitEventHandlers = 0;
+
 /// Handlers to be called on grid change.
 static sudoku_grid_event_handler_list *sudokuOnChangeEventHandlers = 0;
+
 /// Handlers to be called on grid solved.
 static sudoku_grid_event_handler_list *sudokuOnSolvedEventHandlers = 0;
 
@@ -233,6 +245,7 @@ sudoku_grid_event_handler_add (sudokuGridEventType type, sudoku_grid_event_handl
     if (type & t[i])
     {
       sudoku_grid_event_handler_list *const pev = malloc (sizeof (*pev));
+
       if (pev == 0)
       {
         fprintf (stderr, _("Memory allocation error (%s, %s, %i)\n"), __func__, __FILE__, __LINE__);
@@ -259,6 +272,7 @@ sudoku_grid_event_handler_add (sudokuGridEventType type, sudoku_grid_event_handl
       else
       {
         sudoku_grid_event_handler_list *ptr;
+
         for (ptr = hls[i]; ptr->next != 0; ptr = ptr->next)
           if (ptr->handler == handler || ptr->next->handler == handler) // handler already registered
           {
@@ -272,8 +286,8 @@ sudoku_grid_event_handler_add (sudokuGridEventType type, sudoku_grid_event_handl
 }
 
 /// Remove handler from the lists of handlers.
-/// @param[in] type Types (or'ed) of handler to remove.
-/// @param[in] handler Handler to be removed. 0 will remove all handlers.
+/// @param [in] type Types (or'ed) of handler to remove.
+/// @param [in] handler Handler to be removed. 0 will remove all handlers.
 void
 sudoku_grid_event_handler_remove (sudokuGridEventType type, sudoku_grid_event_handler handler)
 {
@@ -282,6 +296,7 @@ sudoku_grid_event_handler_remove (sudokuGridEventType type, sudoku_grid_event_ha
     { sudokuOnInitEventHandlers, sudokuOnChangeEventHandlers, sudokuOnSolvedEventHandlers };
 
   sudoku_grid_event_handler_list *ptr, *next;
+
   for (int i = 0; i < 3; i++)
   {
     if (type & t[i])
@@ -323,9 +338,9 @@ sudoku_grid_event_handler_remove (sudokuGridEventType type, sudoku_grid_event_ha
   }
 }
 
-/// Call handler of type \c ON_INIT.
-/// @param[in] id Game identifier.
-/// @param[in] evt_args Event arguments.
+/// Call handler of type #ON_INIT.
+/// @param [in] id Game identifier.
+/// @param [in] evt_args Event arguments.
 static void
 sudoku_on_init (uintptr_t id, sudoku_grid_event_args evt_args)
 {
@@ -334,9 +349,9 @@ sudoku_on_init (uintptr_t id, sudoku_grid_event_args evt_args)
       (ptr->handler) (id, evt_args);
 }
 
-/// Call handler of type \c ON_CHANGE.
-/// @param[in] id Game identifier.
-/// @param[in] evt_args Event arguments.
+/// Call handler of type #ON_CHANGE.
+/// @param [in] id Game identifier.
+/// @param [in] evt_args Event arguments.
 static void
 sudoku_on_change (uintptr_t id, sudoku_grid_event_args evt_args)
 {
@@ -345,9 +360,9 @@ sudoku_on_change (uintptr_t id, sudoku_grid_event_args evt_args)
       (ptr->handler) (id, evt_args);
 }
 
-/// Call handler of type \c ON_SOLVED.
-/// @param[in] id Game identifier.
-/// @param[in] evt_args Event arguments.
+/// Call handler of type #ON_SOLVED.
+/// @param [in] id Game identifier.
+/// @param [in] evt_args Event arguments.
 static void
 sudoku_on_solved (uintptr_t id, sudoku_grid_event_args evt_args)
 {
@@ -359,15 +374,15 @@ sudoku_on_solved (uintptr_t id, sudoku_grid_event_args evt_args)
 /// Definition of message handlers.
 typedef struct sudoku_message_handler_list
 {
-  sudoku_message_handler handler;
-  struct sudoku_message_handler_list *next;
+  sudoku_message_handler handler;       ///< Pointer to handler function
+  struct sudoku_message_handler_list *next;     ///< Pointer to the next element of the list.
 } sudoku_message_handler_list;
 
 /// Handlers to be called on message.
 static sudoku_message_handler_list *sudokuOnMessageHandlers;
 
 /// Add handler to the lists of handlers.
-/// @param[in] handler Handler to be added.
+/// @param [in] handler Handler to be added.
 void
 sudoku_message_handler_add (sudoku_message_handler handler)
 {
@@ -376,6 +391,7 @@ sudoku_message_handler_add (sudoku_message_handler handler)
       return;
 
   sudoku_message_handler_list *const pev = malloc (sizeof (*pev));
+
   if (pev == 0)
   {
     fprintf (stderr, _("Memory allocation error (%s, %s, %i)\n"), __func__, __FILE__, __LINE__);
@@ -389,6 +405,7 @@ sudoku_message_handler_add (sudoku_message_handler handler)
   else
   {
     sudoku_message_handler_list *ptr;
+
     for (ptr = sudokuOnMessageHandlers; ptr->next != 0; ptr = ptr->next)
       /* nothing */ ;
     ptr->next = pev;
@@ -401,6 +418,7 @@ void
 sudoku_message_handler_remove (sudoku_message_handler handler)
 {
   sudoku_message_handler_list *ptr, *next;
+
   if (!sudokuOnMessageHandlers)
     return;
   while (sudokuOnMessageHandlers && (!handler || sudokuOnMessageHandlers->handler == handler))
@@ -431,6 +449,7 @@ static void
 sudoku_on_message (uintptr_t id, sudoku_message_args evt_args)
 {
   sudoku_message_handler_list *ptr = sudokuOnMessageHandlers;
+
   for (ptr = sudokuOnMessageHandlers; ptr != 0; ptr = ptr->next)
     if (ptr->handler)
       (ptr->handler) (id, evt_args);
@@ -444,6 +463,7 @@ static sudoku_message_args
 get_message_args (const char *message, int verbosity)
 {
   sudoku_message_args sudokuMessageArgs;
+
   sudokuMessageArgs.rule = message;
   sudokuMessageArgs.verbosity = verbosity;
   return (sudokuMessageArgs);
@@ -464,21 +484,29 @@ sudoku_all_handlers_clear (void)
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// ELIMINATION METHOD ////////////////////
 /////////////////////////////////////////////////////////////////////////
+
 /// Array of number of bits sets for the integer value of the index of array.
-static unsigned short int NB_BITS[1 << 9];   // unsigned short int is at least 16 bits in size
+/// @remark `unsigned short int` is at least 16 bits in size
+static unsigned short int NB_BITS[1 << 9];
+
 static unsigned short int SUBSETS[1 << 9];
 static unsigned short int SUBSET_INDEX[9 + 1];
 
 /// Alphabet.
 static const char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 /// Digits.
 static const char DIGIT[] = "0123456789";
+
 /// Names of rows.
 static char ROW_NAME[9];
+
 /// Names of columns.
 static char COLUMN_NAME[9];
+
 /// Names of regions.
 static char REGION_NAME[27][20];
+
 /// Names of segments.
 static char INTERSECTION_NAME[54][50];
 
@@ -496,44 +524,44 @@ typedef struct
 /// Definition of a region.
 typedef struct
 {
-  cell *cell[9];
-  int changed;
-  const char *name;
-  struct _grid *grid;           /// owner grid
+  cell *cell[9];                ///< The 9 cells of the region (row, column or square).
+  int changed;                  ///< Flag inidicating the region has been modified by application of a rule.
+  const char *name;             ///< Name of the region, for displaying purpose.
+  struct _grid *grid;           ///< owner grid
 } region;
 
-/// Definition of a segment.
+/// Definition of a segment (intersection of a square with a line or a column).
 typedef struct
 {
-  cell *r1_cell[6];
-  cell *r2_cell[6];
-  int changed;
-  const char *name;
-  struct _grid *grid;           /// owner grid
+  cell *r1_cell[6];             ///< The 6 cells of the first region
+  cell *r2_cell[6];             ///< The 6 cells of the second region
+  int changed;                  ///< Flag inidicating the intersection has been modified by application of a rule.
+  const char *name;             ///< Name of the intersection, for displaying purpose.
+  struct _grid *grid;           ///< owner grid
 } intersection;
 
 /// Definition of a grid.
 typedef struct _grid
 {
-  uintptr_t id;
-  cell cell[9][9];
-  intersection intersection[54];        /// 27 groups of 3 horizontal cells + 27 groups of 3 vertical cells
-  region region[27];            /// 9 rows, 9 columns, 9 squares
+  uintptr_t id;                 ///< Grid identifier
+  cell cell[9][9];              ///< 81 cells
+  intersection intersection[54];        ///< 27 groups of 3 horizontal cells + 27 groups of 3 vertical cells
+  region region[27];            ///< 9 rows, 9 columns, 9 squares
 } grid;
 
 /// Definition of counters for statistic purposes.
 typedef struct
 {
-  int nbSolutions;              /// Number of solutions found
-  int nbRules;                  /// Number of rules
-  int backtrackingTries;        /// Number of backtracking hypothesis
-  int backtrackingLevel;        /// Backtracking depth
-  int backtrackingSteps;        /// Backtracking depth
-  int rC[9];                    /// Number of candidate exclusion per depth
-  int rV[9];                    /// Number of value exclusion per depth
-  int rR[9];                    /// Number of region exclusion per depth
-  int rI;                       /// Number of intersection exclusion
-  char theSolution[81][20];     /// Last solution found
+  int nbSolutions;              ///< Number of solutions found
+  int nbRules;                  ///< Number of rules
+  int backtrackingTries;        ///< Number of backtracking hypothesis
+  int backtrackingLevel;        ///< Backtracking depth
+  int backtrackingSteps;        ///< Backtracking depth
+  int rC[9];                    ///< Number of candidate exclusion per depth
+  int rV[9];                    ///< Number of value exclusion per depth
+  int rR[9];                    ///< Number of region exclusion per depth
+  int rI;                       ///< Number of intersection exclusion
+  char theSolution[81][20];     ///< Last solution found
 } counters;
 
 /// Definition of region types.
@@ -571,6 +599,7 @@ VALUES (unsigned short int bits)
 {
   static char _v[9 * 2];
   int pos = 0;
+
   for (int i = 1; i <= 9; i++)
   {
     if (bits & 1)
@@ -591,8 +620,8 @@ static int grid_cell_changed (grid *, cell *);
 static int grid_countEmptyCells (grid *);
 
 /// Eliminates values from an intersection.
-/// @param[in,out] inter Intersection
-/// @param[in,out] stats Statistic data
+/// @param [in,out] inter Intersection
+/// @param [in,out] stats Statistic data
 /// @return Number of possible values in intersection
 static int
 intersection_skim (intersection * inter, counters * stats)
@@ -605,6 +634,7 @@ intersection_skim (intersection * inter, counters * stats)
   }
 
   unsigned short int intersection = values[0] ^ values[1];
+
   if (intersection)
   {
     stats->nbRules += NB_BITS[intersection];
@@ -613,6 +643,7 @@ intersection_skim (intersection * inter, counters * stats)
     if (sudokuOnMessageHandlers)
     {
       char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
       if (NB_BITS[intersection] > 1)
         MESSAGE_APPEND (rule,
                         _("%s: the values (%s) can only lie in %s.\n"), inter->name, VALUES (intersection),
@@ -627,11 +658,13 @@ intersection_skim (intersection * inter, counters * stats)
     for (int i = 0; i < 6; i++)
     {
       unsigned short int oldval = inter->r1_cell[i]->value;
+
       inter->r1_cell[i]->value &= ~intersection;
       if (oldval != inter->r1_cell[i]->value)
         if (grid_cell_changed (inter->grid, inter->r1_cell[i]))
         {
           int nbCells = 81 - grid_countEmptyCells (inter->grid);
+
           sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, inter->r1_cell[i]->name,
                    VALUE (inter->r1_cell[i]->value));
         }
@@ -640,11 +673,13 @@ intersection_skim (intersection * inter, counters * stats)
     for (int i = 0; i < 6; i++)
     {
       unsigned short int oldval = inter->r2_cell[i]->value;
+
       inter->r2_cell[i]->value &= ~intersection;
       if (oldval != inter->r2_cell[i]->value)
         if (grid_cell_changed (inter->grid, inter->r2_cell[i]))
         {
           int nbCells = 81 - grid_countEmptyCells (inter->grid);
+
           sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, inter->r2_cell[i]->name,
                    VALUE (inter->r2_cell[i]->value));
         }
@@ -655,7 +690,9 @@ intersection_skim (intersection * inter, counters * stats)
 }
 
 /// Eliminates regions (rows and columns) for a value
-/// @param[in,out] stats Statistic data
+/// @param [in] g Grid
+/// @param [in] value Value to be removed.
+/// @param [in,out] stats Statistic data
 /// @return skimming depth
 static int
 value_skim (grid * g, unsigned short int value, counters * stats)
@@ -665,6 +702,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
   unsigned short int bits;
 
   int stop = 0;
+
   for (unsigned short int depth = 1; depth <= 9 && !stop; depth++)
   {
     for (unsigned short int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
@@ -682,7 +720,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         if (rows & 1)
           for (unsigned short int col = 0; col < 9; col++)
             if (g->cell[row][col].value & (1 << (value - 1)))
-              columns |= (1 << col);     // columns of all cells in 'rows' of subset which contain value
+              columns |= (1 << col);    // columns of all cells in 'rows' of subset which contain value
         rows >>= 1;
       }
 
@@ -693,32 +731,36 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         // other lines than thoses of 'rows' don't contain value in those 'columns'
         unsigned short int skimLevel = 0;
         unsigned short int otherrows = ~bits;
+
         for (unsigned short int row = 0; row < 9; row++)
         {
           if (otherrows & 1)
           {
             unsigned short int cols = columns;
+
             for (unsigned short int col = 0; col < 9; col++)
             {
               if (cols & 1)
               {
-              unsigned short int oldval = g->cell[row][col].value;
-              g->cell[row][col].value &= ~(1 << (value - 1));
-              if (oldval != g->cell[row][col].value)
-              {
-                skimLevel = NB_BITS[bits];
-                if (grid_cell_changed (g, &g->cell[row][col]))
+                unsigned short int oldval = g->cell[row][col].value;
+
+                g->cell[row][col].value &= ~(1 << (value - 1));
+                if (oldval != g->cell[row][col].value)
                 {
-                  int nbCells = 81 - grid_countEmptyCells (g);
-                  sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
-                           VALUE (g->cell[row][col].value));
+                  skimLevel = NB_BITS[bits];
+                  if (grid_cell_changed (g, &g->cell[row][col]))
+                  {
+                    int nbCells = 81 - grid_countEmptyCells (g);
+
+                    sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
+                             VALUE (g->cell[row][col].value));
+                  }
+                  if (g->cell[row][col].value == 0)
+                    return (-1);        // Invalid grid
                 }
-                if (g->cell[row][col].value == 0)
-                  return (-1);    // Invalid grid
               }
-			  }
-		    cols >>= 1;
-		    }
+              cols >>= 1;
+            }
           }
           otherrows >>= 1;
         }
@@ -728,6 +770,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
           {
             unsigned short int d = 0;
             char noprint = 0;
+
             if (NB_BITS[bits] == 1)
               for (unsigned short int rows = bits; rows; rows >>= 1, d++)
                 for (unsigned short int col = 0; col < 9; col++)
@@ -735,9 +778,11 @@ value_skim (grid * g, unsigned short int value, counters * stats)
                     noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
             // Display:
             char row_names[2 * NB_BITS[bits] + 1];
             char col_names[2 * NB_BITS[bits] + 1];
+
             d = 0;
             for (unsigned short int rows = bits; rows; rows >>= 1, d++)
               if (rows & 1)
@@ -747,7 +792,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
               }
             row_names[2 * NB_BITS[bits]] = '\0';
             d = 0;
-            for (unsigned short int cols = columns ; cols ; cols >>= 1, d++)
+            for (unsigned short int cols = columns; cols; cols >>= 1, d++)
               if (cols & 1)
               {
                 col_names[2 * NB_BITS[cols] - 2] = ' ';
@@ -791,7 +836,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         if (columns & 1)
           for (unsigned short int row = 0; row < 9; row++)
             if (g->cell[row][col].value & (1 << (value - 1)))
-              rows |= (1 << row);     // columns of all cells in 'rows' of subset which contain value
+              rows |= (1 << row);       // columns of all cells in 'rows' of subset which contain value
         columns >>= 1;
       }
 
@@ -802,32 +847,36 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         // other lines than thoses of 'rows' don't contain value in those 'columns'
         unsigned short int skimLevel = 0;
         unsigned short int othercols = ~bits;
+
         for (unsigned short int col = 0; col < 9; col++)
         {
           if (othercols & 1)
           {
             unsigned short int lrows = rows;
+
             for (unsigned short int row = 0; row < 9; row++)
             {
               if (lrows & 1)
               {
-              unsigned short int oldval = g->cell[row][col].value;
-              g->cell[row][col].value &= ~(1 << (value - 1));
-              if (oldval != g->cell[row][col].value)
-              {
-                skimLevel = NB_BITS[bits];
-                if (grid_cell_changed (g, &g->cell[row][col]))
+                unsigned short int oldval = g->cell[row][col].value;
+
+                g->cell[row][col].value &= ~(1 << (value - 1));
+                if (oldval != g->cell[row][col].value)
                 {
-                  int nbCells = 81 - grid_countEmptyCells (g);
-                  sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
-                           VALUE (g->cell[row][col].value));
+                  skimLevel = NB_BITS[bits];
+                  if (grid_cell_changed (g, &g->cell[row][col]))
+                  {
+                    int nbCells = 81 - grid_countEmptyCells (g);
+
+                    sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
+                             VALUE (g->cell[row][col].value));
+                  }
+                  if (g->cell[row][col].value == 0)
+                    return (-1);        // Invalid grid
                 }
-                if (g->cell[row][col].value == 0)
-                  return (-1);    // Invalid grid
               }
-			  }
-		    lrows >>= 1;
-		    }
+              lrows >>= 1;
+            }
           }
           othercols >>= 1;
         }
@@ -837,6 +886,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
           {
             unsigned short int d = 0;
             char noprint = 0;
+
             if (NB_BITS[bits] == 1)
               for (unsigned short int columns = bits; columns; columns >>= 1, d++)
                 for (unsigned short int row = 0; row < 9; row++)
@@ -844,9 +894,11 @@ value_skim (grid * g, unsigned short int value, counters * stats)
                     noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
             // Display:
             char row_names[2 * NB_BITS[bits] + 1];
             char col_names[2 * NB_BITS[bits] + 1];
+
             d = 0;
             for (unsigned short int lrows = rows; lrows; lrows >>= 1, d++)
               if (lrows & 1)
@@ -856,7 +908,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
               }
             row_names[2 * NB_BITS[rows]] = '\0';
             d = 0;
-            for (unsigned short int cols = bits ; cols ; cols >>= 1, d++)
+            for (unsigned short int cols = bits; cols; cols >>= 1, d++)
               if (cols & 1)
               {
                 col_names[2 * NB_BITS[cols] - 2] = ' ';
@@ -896,8 +948,8 @@ value_skim (grid * g, unsigned short int value, counters * stats)
 }
 
 /// Eliminates values from a region.
-/// @param[in,out] reg Region
-/// @param[in,out] stats Statistic data
+/// @param [in,out] reg Region
+/// @param [in,out] stats Statistic data
 /// @return Number of possible values in region
 static int
 region_skim (region * reg, counters * stats)
@@ -907,6 +959,7 @@ region_skim (region * reg, counters * stats)
   unsigned short int bits;
 
   int stop = 0;
+
   for (unsigned short int depth = 1; depth <= 9 && !stop; depth++)
   {
     for (unsigned short int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
@@ -933,11 +986,13 @@ region_skim (region * reg, counters * stats)
         // cells of region other than those of 'cells' do not contain values of 'values'
         unsigned short int skimLevel = 0;
         unsigned short int othercells = ~bits;
+
         for (unsigned short int cell = 0; cell < 9; cell++)
         {
           if (othercells & 1)
           {
             unsigned short int oldval = reg->cell[cell]->value;
+
             reg->cell[cell]->value &= ~values;  // remove values of all cells in 'othercells' of region
             if (oldval != reg->cell[cell]->value)
             {
@@ -945,6 +1000,7 @@ region_skim (region * reg, counters * stats)
               if (grid_cell_changed (reg->grid, reg->cell[cell]))
               {
                 int nbCells = 81 - grid_countEmptyCells (reg->grid);
+
                 sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, reg->cell[cell]->name,
                          VALUE (reg->cell[cell]->value));
               }
@@ -960,14 +1016,17 @@ region_skim (region * reg, counters * stats)
           {
             unsigned short int d = 0;
             char noprint = 0;
+
             if (NB_BITS[bits] == 1)
               for (unsigned short int cells = bits; cells; cells >>= 1, d++)
                 if (cells & 1 && reg->cell[d]->given)
                   noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
             // Display:
             char names[9 * 3 + 2] = " ";
+
             d = 0;
             for (unsigned short int cells = bits; cells; cells >>= 1, d++)
               if (cells & 1)
@@ -1021,11 +1080,13 @@ region_skim (region * reg, counters * stats)
         unsigned short int tmp = cells;
         unsigned short int skimLevel = 0;
         unsigned short int othervalues = ~bits;
+
         for (unsigned short int cell = 0; cell < 9; cell++)
         {
           if (cells & 1)
           {
             unsigned short int oldval = reg->cell[cell]->value;
+
             reg->cell[cell]->value &= ~othervalues;     // remove other values of all cells in 'cells' of region
             if (oldval != reg->cell[cell]->value)
             {
@@ -1033,6 +1094,7 @@ region_skim (region * reg, counters * stats)
               if (grid_cell_changed (reg->grid, reg->cell[cell]))
               {
                 int nbCells = 81 - grid_countEmptyCells (reg->grid);
+
                 sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, reg->cell[cell]->name,
                          VALUE (reg->cell[cell]->value));
               }
@@ -1048,14 +1110,17 @@ region_skim (region * reg, counters * stats)
           {
             unsigned short int d = 0;
             char noprint = 0;
+
             if (NB_BITS[bits] == 1)
               for (unsigned short int cells = tmp; cells; cells >>= 1, d++)
                 if (cells & 1 && reg->cell[d]->given)
                   noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
             // Display:
             char names[9 * 3 + 2] = " ";
+
             d = 0;
             for (unsigned short int cells = tmp; cells; cells >>= 1, d++)
               if (cells & 1)
@@ -1101,6 +1166,7 @@ static int
 grid_countEmptyCells (grid * g)
 {
   int ret = 81;
+
   for (int i = 0; i < 81; i++)
     if (NB_BITS[g->cell[i / 9][i % 9].value] == 1)
       ret--;
@@ -1139,6 +1205,7 @@ grid_init (grid * g)
     g->region[r].grid = g;
 
     regionType t = r / 9;
+
     switch (t)
     {
       case ROW:
@@ -1162,6 +1229,7 @@ grid_init (grid * g)
 
     regionType direction = i / 27;
     int inter = i % 27;
+
     switch (direction)
     {
       case COLUMN:
@@ -1237,6 +1305,7 @@ grid_cell_changed (grid * g, cell * cell)
     if (sudokuOnMessageHandlers)
     {
       char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
       MESSAGE_APPEND (rule, _("\n  ### Cell %s must contain %c [%2i] ###\n\n"), cell->name, VALUE (cell->value),
                       nbCells);
       if (*rule)
@@ -1324,14 +1393,14 @@ grid_copy (grid * dest, grid * src)
 }
 
 /// Eliminates regions.
-/// @param[in] g Grid
-/// @param[out] theSolution Statistic data
-/// @param[out] stats Statistic data
+/// @param [in] g Grid
+/// @param [out] stats Statistic data
 /// @return 1 if some candidates have been excluded, 0 otherwise, -1 if g is invalide
 static int
 grid_skimValues (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
+
   for (unsigned short int value = 1; value <= 9; value++)
   {
     int ret = value_skim (g, value, stats);
@@ -1349,6 +1418,7 @@ grid_skimValues (grid * g, counters * stats)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
         MESSAGE_APPEND (rule, _("  => Invalid grid.\n"));
         sudoku_on_message (g->id, get_message_args (rule, 1));
       }
@@ -1360,14 +1430,14 @@ grid_skimValues (grid * g, counters * stats)
 }
 
 /// Eliminates candidates in regions.
-/// @param[in] g Grid
-/// @param[out] theSolution Statistic data
-/// @param[out] stats Statistic data
+/// @param [in] g Grid
+/// @param [out] stats Statistic data
 /// @return 1 if some candidates have been excluded, 0 otherwise, -1 if g is invalide
 static int
 grid_skimRegions (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
+
   for (int ir = 0; ir < 27; ir++)
   {
     if (g->region[ir].changed == 0)
@@ -1389,6 +1459,7 @@ grid_skimRegions (grid * g, counters * stats)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
         MESSAGE_APPEND (rule, _("  => Invalid grid.\n"));
         sudoku_on_message (g->id, get_message_args (rule, 1));
       }
@@ -1399,14 +1470,14 @@ grid_skimRegions (grid * g, counters * stats)
 }
 
 /// Eliminates candidates in regions.
-/// @param[in] g Grid
-/// @param[out] theSolution Statistic data
-/// @param[out] stats Statistic data
+/// @param [in] g Grid
+/// @param [out] stats Statistic data
 /// @return 1 if some candidates have been excluded, 0 otherwise, -1 if g is invalide
 static int
 grid_skimIntersections (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
+
   for (int ir = 0; ir < 54; ir++)
   {
     if (g->intersection[ir].changed == 0)
@@ -1414,6 +1485,7 @@ grid_skimIntersections (grid * g, counters * stats)
 
     g->intersection[ir].changed = 0;
     int ret = intersection_skim (&(g->intersection[ir]), stats);
+
     if (ret > 0)
     {
       gridSkimmed += ret;
@@ -1425,19 +1497,20 @@ grid_skimIntersections (grid * g, counters * stats)
 }
 
 /// Solves a grid.
-/// @param[in] g Grid
-/// @param[in] find \c FIRST to find the first solution or \c ALL to find all solutions
-/// @param[out] theSolution Statistic data
-/// @param[out] stats Statistic data
+/// @param [in] g Grid
+/// @param [in] find \c FIRST to find the first solution or \c ALL to find all solutions
+/// @param [out] stats Statistic data
 /// @return 1 if some candidates have been excluded, 0 otherwise, -1 if g is invalide
 static int
 grid_solveByElimination (grid * g, findSolutions find, counters * stats)
 {
   int skim = 1;
+
   while (skim > 0)
   {
     // skim regions
     int r = grid_skimRegions (g, stats);
+
     skim = r;
     if (r < 0)
       return (-1);
@@ -1454,6 +1527,7 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
 
     // skim intersections
     int i = grid_skimIntersections (g, stats);
+
     if (i < 0)
       return (-1);
 
@@ -1465,9 +1539,11 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
   // no skim done -> needs hypothesis (backtracking, recursive call to grid_solveByElimination)
   int ipivot = -1;
   unsigned short int min = 10;
+
   for (int i = 0; i < 81; i++)
   {
     unsigned short int j = NB_BITS[g->cell[i / 9][i % 9].value];
+
     if (j >= 2 && j < min)
     {
       ipivot = i;
@@ -1484,14 +1560,17 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
 
     int retCode = -1;
     unsigned short int value = 1;
+
     for (unsigned short int bits = g->cell[ipivot / 9][ipivot % 9].value; bits != 0; bits >>= 1, value <<= 1)
     {
       if (!(bits & 1))
         continue;
 
       grid clone;
+
       grid_copy (&clone, g);
       cell *pivot = &(clone.cell[ipivot / 9][ipivot % 9]);
+
       pivot->value = value;     // cell modified here
 
       //stats->nbSteps++ ;
@@ -1501,6 +1580,7 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
         MESSAGE_APPEND (rule, _("  ??? Hypothesis: cell %s = %c ? (out of %s) [%2i] ???\n"),
                         pivot->name, VALUE (pivot->value), VALUES (g->cell[ipivot / 9][ipivot % 9].value), nbCells);
         //MESSAGE_APPEND (rule, "  [%2i]\n", nbCells);
@@ -1513,6 +1593,7 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
       stats->backtrackingLevel++;
       int k = grid_solveByElimination (&clone, find, stats);
       int nbSteps = grid_countEmptyCells (g) - grid_countEmptyCells (&clone);
+
       if (nbSteps > stats->backtrackingSteps)
         stats->backtrackingSteps = nbSteps;
       if (k > 0)
@@ -1532,6 +1613,7 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
         if (sudokuOnMessageHandlers)
         {
           char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
           MESSAGE_APPEND (rule,
                           _("  %%%%%% Incorrect guess: cell %s = %c [%2i] (after %i steps). %%%%%%\n"), pivot->name,
                           VALUE (pivot->value), nbCells, nbSteps);
@@ -1547,6 +1629,7 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
     if (sudokuOnMessageHandlers)
     {
       char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
       MESSAGE_APPEND (rule, _("Solved using elimination method (solution #%i).\n"), stats->nbSolutions);
 
       for (int i = 0; i < 81; i++)
@@ -1572,6 +1655,7 @@ static sudoku_grid_event_args
 int9x9_print (int g[9][9])
 {
   int nbc = 0;
+
   for (int i = 0; i < 9 * 9; i++)
     if (g[i / 9][i % 9])
       nbc++;
@@ -1636,6 +1720,7 @@ int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, count
 {
   int retCode = 0;
   int ii;
+
   for (ii = 0; ii < 81 && g[ii / 9][ii % 9] != 0; ii++)
     ;
 
@@ -1643,9 +1728,11 @@ int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, count
   {
     int l = ii / 9;
     int c = ii % 9;
+
     for (int value = 1; value <= 9; value++)
     {
       int skipValue = 0;
+
       for (int cell = 0; cell < 9; cell++)
         if (g[l][cell] == value || g[cell][c] == value || g[3 * (l / 3) + cell / 3][3 * (c / 3) + cell % 3] == value)
           skipValue = 1;
@@ -1653,10 +1740,12 @@ int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, count
       if (!skipValue)
       {
         int clone[9][9];
+
         memcpy (clone, g, 81 * sizeof (int));
         clone[l][c] = value;
         stats->backtrackingTries++;
         int i = int9x9_solveByBacktracking (id, clone, find, stats);
+
         if (i > 0)
         {
           retCode = 1;
@@ -1673,6 +1762,7 @@ int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, count
   {
     stats->nbSolutions++;
     char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
     MESSAGE_APPEND (rule, _("Solved using backtracking method (solution #%i, %i tries).\n"), stats->nbSolutions,
                     stats->backtrackingTries);
     sudoku_on_message (id, get_message_args (rule, 0));
@@ -1701,6 +1791,7 @@ sudoku_init (void)
   for (int r = 0; r < 27; r++)  // 27 regions
   {
     regionType t = r / 9;
+
     switch (t)
     {
       case ROW:
@@ -1721,6 +1812,7 @@ sudoku_init (void)
   {
     regionType direction = i / 27;
     int inter = i % 27;
+
     switch (direction)
     {
       case COLUMN:
@@ -1739,6 +1831,7 @@ sudoku_init (void)
   }
 
   unsigned short int index = 0;
+
   for (int i = 0; i <= 9; i++)
   {
     for (unsigned short int j = 0; j < (1 << 9); j++)
@@ -1753,8 +1846,11 @@ sudoku_init (void)
 /////////////////////////////////////////////////////////////////////////
 ////////////////////////// EXACT COVER SEARCH METHOD ////////////////////
 /////////////////////////////////////////////////////////////////////////
+
+/// Displayer function to be used by the exqct cover serach library libdlx.a.
+/// @see [dancing links library](https://github.com/farhiongit/dancing-links).
 static void
-exact_cover_search_solution_displayer (Univers head, unsigned long length, const char *const *solution, void* ptr)
+exact_cover_search_solution_displayer (Univers head, unsigned long length, const char *const *solution, void *ptr)
 {
   if (!length || !solution)
   {
@@ -1763,6 +1859,7 @@ exact_cover_search_solution_displayer (Univers head, unsigned long length, const
   }
 
   int g[9][9];
+
   for (unsigned long i = 0; i < length; i++)
     if (solution[i] && isdigit (solution[i][1]) && isdigit (solution[i][3]) && isdigit (solution[i][5]))
       g[solution[i][1] - '0' - 1][solution[i][3] - '0' - 1] = solution[i][5] - '0';
@@ -1777,9 +1874,11 @@ const char *
 sudoku_get_version (void)
 {
   static char *version = 0;
+
   if (version == 0)
   {
     int length = snprintf (version, 0, "V%s, %s %s", SUDOKU_SOLVE_VERSION, __DATE__, __TIME__) + 1;
+
     version = malloc (length * sizeof (*version));
     if (version == 0)
     {
@@ -1803,6 +1902,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
         MESSAGE_APPEND (rule, _("Grid is not valid.\n"));
         sudoku_on_message (0, get_message_args (rule, 0));
       }
@@ -1810,6 +1910,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
     }
 
   counters theStats;
+
   theStats.nbSolutions = theStats.nbRules = theStats.backtrackingLevel =
     theStats.backtrackingSteps = theStats.backtrackingTries = theStats.rI = 0;
   for (int i = 0; i < 9; i++)
@@ -1832,6 +1933,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
 
     // Searching for solutions.
     int ret = grid_solveByElimination (&theGridCells, find, &theStats);
+
     // Clean after yourself
 
     if (ret < 0)
@@ -1839,6 +1941,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
+
         MESSAGE_APPEND (rule, _("Grid is not valid.\n"));
         sudoku_on_message (theGridCells.id, get_message_args (rule, 0));
       }
@@ -1850,7 +1953,9 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
       if (sudokuOnMessageHandlers)
       {
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
-        MESSAGE_APPEND (rule, ngettext("%i solution found.\n", "%i solutions found.\n", theStats.nbSolutions), theStats.nbSolutions);
+
+        MESSAGE_APPEND (rule, ngettext ("%i solution found.\n", "%i solutions found.\n", theStats.nbSolutions),
+                        theStats.nbSolutions);
         MESSAGE_APPEND (rule, _("Solved with %i rules and %i hypothesis.\n"), theStats.nbRules,
                         theStats.backtrackingTries);
         MESSAGE_APPEND (rule, _("Cell Exclusion:\n"));
@@ -1881,6 +1986,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
   else if (method == BACKTRACKING)
   {
     uintptr_t gridID = (uintptr_t) g;
+
     sudoku_on_init (gridID, int9x9_print (g));
 
     // Searching for solutions.
@@ -1940,6 +2046,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
 
     // Initialize the lines of the matrix to be covered exactly.
     char line[strlen (inCell) + 1 + strlen (inRow) + 1 + strlen (inColumn) + 1 + strlen (inBox) + 1];
+
     for (int row = 1; row <= 9; row++)
       for (int column = 1; column <= 9; column++)
         for (int number = 1; number <= 9; number++)
@@ -1990,7 +2097,8 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
     // Searching for solutions covering exactly the matrix.
     char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
     unsigned long nbsol = dlx_exact_cover_search (sudoku, find == FIRST ? 1 : 0);
-    MESSAGE_APPEND (rule, ngettext("%i solution found.\n", "%i solutions found.\n", nbsol), nbsol);
+
+    MESSAGE_APPEND (rule, ngettext ("%i solution found.\n", "%i solutions found.\n", nbsol), nbsol);
     MESSAGE_APPEND (rule, _("Solved using exact cover search method.\n"));
     sudoku_on_message ((uintptr_t) sudoku, get_message_args (rule, 0));
 

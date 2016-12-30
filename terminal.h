@@ -1,7 +1,9 @@
+
 /**
  * @file
  * Sudoku solver terminal interface.
  */
+
 /***********************************************************************************
 * Author: Laurent Farhi                                                            *
 * Name: terminal.h                                                                 *
@@ -27,11 +29,13 @@
 #pragma once
 #ifndef TERMINAL_H
 #define TERMINAL_H
+
+/// Enumeration of displaying modes.
 typedef enum
 {
-  NORMAL = 1,
-  RULES = 2,
-  VERBOSE = 4
+  NORMAL = 1,                   ///< Display grid.
+  RULES = 2,                    ///< Display rules.
+  VERBOSE = 4                   ///< Display rules and grid with candidates.
 } display;
 
 void terminal_set (int iflag);
