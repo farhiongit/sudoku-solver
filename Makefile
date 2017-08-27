@@ -1,7 +1,7 @@
 CC				= clang -std=c11
 WARNINGS	= -Wall -pedantic-errors -Werror
 #For debuging, use DEBUG instead of COMPILE
-COMPILE		= -pipe -O3
+COMPILE		= -pipe -O3 -DSUDOKU_SIZE=3
 #DEBUG			= -g -pg
 #For profiling, use DEBUG option instead of COMPILE, run executable, then "gprof ./solveSudoku gmon.out"
 #PROC_OPT        = -march=i686

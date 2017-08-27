@@ -87,7 +87,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
       for (int j = 0; j < (SQUARE_SIZE - 1) / 2; j++)
         printf (" ");
       printf ("%c", sudoku_grid_referential.column_name[i]);
-      for (int j = 0; j < (SQUARE_SIZE - 1) / 2; j++)
+      for (int j = 0; j < SQUARE_SIZE - (SQUARE_SIZE - 1) / 2 - 1; j++)
         printf (" ");
     }
     printf ("\n");

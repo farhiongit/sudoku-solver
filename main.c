@@ -103,6 +103,7 @@ main (int argc, char *argv[])
   sudoku_init ();
 
   const char *TEST_GRID[] = {
+#if SUDOKU_SIZE == 3
     "8........" "..36....." ".7..9.2.." ".5...7..." "....457.." "...1...3." "..1....68" "..85...1." ".9....4..",
     "000000010" "400000000" "020000000" "000050604" "008000300" "001090000" "300400200" "050100000" "000807000",
     "400009000" "030010020" "006700000" "001000004" "050200070" "800000600" "000004008" "070030010" "000500900",
@@ -112,6 +113,11 @@ main (int argc, char *argv[])
     "7...85..." ".81......" ".43....59" "......3.1" "2..4..7.." ".3...7.9." ".15......" "....5.2.3" "....98...",
     "7...85..7" ".81......" ".43....59" "......3.1" "2..4..7.." ".3...7.9." ".15......" "....5.2.3" "....98...",
     "76.5..2.." "1.2.4..78" "..4..851." ".....3..." "..71.2..." "9...876.." "..6....3." ".1.7..8.." ".43..9...",        // BestWestern Ypsilon Essen (fake sudoku)
+#elif SUDOKU_SIZE == 2
+    "1234 4.2. .4.. 2..3",
+#else
+    "",
+#endif
   };
 
   setlocale (LC_ALL, "");
@@ -147,8 +153,10 @@ main (int argc, char *argv[])
         ("      %1$s, %2$c or . for an empty cell, other characters (including space and end-of-line) are ignored.\n",
          sudoku_grid_referential.value_name, sudoku_grid_referential.empty_code);
       printf ("      For example:\n\n%s\n", TEST_GRID[0]);
-      printf ("      \nor\n\n7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n\n");
-      printf ("    If the argument 'grid' is omitted or is '-', it is read from the standard input.\n");
+#if SUDOKU_SIZE == 3
+      printf ("\n      or\n\n7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n");
+#endif
+      printf ("\n    If the argument 'grid' is omitted or is '-', it is read from the standard input.\n");
       printf ("\nOptions:\n");
       printf ("  General options:\n");
       printf ("   -v\tDisplay version\n");
