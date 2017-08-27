@@ -173,6 +173,7 @@
 #include "../knuth_dancing_links/dancing_links.h"
 #include "finally.h"
 #include <libintl.h>
+#include <assert.h>
 
 #ifdef __USE_GNU_GETTEXT
 // Internationalization
@@ -486,35 +487,46 @@ sudoku_all_handlers_clear (void)
 /////////////////////////////////////////////////////////////////////////
 
 /// Array of number of bits sets for the integer value of the index of array.
-/// @remark `unsigned short int` is at least 16 bits in size
-static unsigned short int NB_BITS[1 << 9];
+/// @remark `unsigned int` is at least 16 bits in size
+static unsigned int NB_BITS[1 << GRID_SIZE];
 
-static unsigned short int SUBSETS[1 << 9];
-static unsigned short int SUBSET_INDEX[9 + 1];
+static unsigned int SUBSETS[1 << GRID_SIZE];
+static unsigned int SUBSET_INDEX[GRID_SIZE + 1];
 
 /// Alphabet.
-static const char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static char ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /// Digits.
-static const char DIGIT[] = "0123456789";
+static char DIGIT[] = "123456789abcdefghijklmnopqrstuvwxyz@";
+
+/// Names of values.
+static char VALUE_NAME[GRID_SIZE + 1];
+
+/// Code of empty cell
+enum
+{
+  EMPTY_CELL = '0',             // compile-time constant
+};
 
 /// Names of rows.
-static char ROW_NAME[9];
+static char ROW_NAME[GRID_SIZE + 1];
 
 /// Names of columns.
-static char COLUMN_NAME[9];
+static char COLUMN_NAME[GRID_SIZE + 1];
 
 /// Names of regions.
-static char REGION_NAME[27][20];
+static char REGION_NAME[GRID_SIZE * 3][20];
 
 /// Names of segments.
-static char INTERSECTION_NAME[54][50];
+static char INTERSECTION_NAME[GRID_SIZE * SQUARE_SIZE * 2][50];
+
+const GridReferential sudoku_grid_referential = { ROW_NAME, COLUMN_NAME, VALUE_NAME, EMPTY_CELL };
 
 /// Definition of a cell.
 typedef struct
 {
-  /// Bit mask of possible values in the cell, amongst 9 (size of unsigned short is at least 16 bits.)
-  unsigned short int value;
+  /// Bit mask of possible values in the cell, amongst 9 (size of unsigned is at least 16 bits.)
+  unsigned int value;
   /// Cell name
   char name[3];
   /// Set to 1 if the value of the cell is initially set.
@@ -524,17 +536,28 @@ typedef struct
 /// Definition of a region.
 typedef struct
 {
-  cell *cell[9];                ///< The 9 cells of the region (row, column or square).
+  cell *cell[GRID_SIZE];        ///< The 9 cells of the region (row, column or square).
   int changed;                  ///< Flag inidicating the region has been modified by application of a rule.
   const char *name;             ///< Name of the region, for displaying purpose.
   struct _grid *grid;           ///< owner grid
 } region;
 
 /// Definition of a segment (intersection of a square with a line or a column).
+// An intersection (iii) between (e.g.) a square and a line
+// 'i' indicates the cells at intersection
+// '1' indicated the cells outside of the intersection in the square
+// '2' indicated the cells outside of the intersection in the line
+//
+// ... 111 ...
+// ... 111 ...
+// 222 iii 222
+//
+// There as many intersections as nb_squares x nb_lines in a square + nb_squares x nb_columns in a square
+// i.e. GRID_SIZE * SQUARE_SIZE * 2
 typedef struct
 {
-  cell *r1_cell[6];             ///< The 6 cells of the first region
-  cell *r2_cell[6];             ///< The 6 cells of the second region
+  cell *r1_cell[GRID_SIZE - SQUARE_SIZE];       ///< The 6 cells of the first region
+  cell *r2_cell[GRID_SIZE - SQUARE_SIZE];       ///< The 6 cells of the second region
   int changed;                  ///< Flag inidicating the intersection has been modified by application of a rule.
   const char *name;             ///< Name of the intersection, for displaying purpose.
   struct _grid *grid;           ///< owner grid
@@ -544,9 +567,9 @@ typedef struct
 typedef struct _grid
 {
   uintptr_t id;                 ///< Grid identifier
-  cell cell[9][9];              ///< 81 cells
-  intersection intersection[54];        ///< 27 groups of 3 horizontal cells + 27 groups of 3 vertical cells
-  region region[27];            ///< 9 rows, 9 columns, 9 squares
+  cell cell[GRID_SIZE][GRID_SIZE];      ///< 81 cells
+  intersection intersection[GRID_SIZE * SQUARE_SIZE * 2];       ///< 27 groups of 3 horizontal cells + 27 groups of 3 vertical cells
+  region region[GRID_SIZE * 3]; ///< 9 rows, 9 columns, 9 squares
 } grid;
 
 /// Definition of counters for statistic purposes.
@@ -557,58 +580,53 @@ typedef struct
   int backtrackingTries;        ///< Number of backtracking hypothesis
   int backtrackingLevel;        ///< Backtracking depth
   int backtrackingSteps;        ///< Backtracking depth
-  int rC[9];                    ///< Number of candidate exclusion per depth
-  int rV[9];                    ///< Number of value exclusion per depth
-  int rR[9];                    ///< Number of region exclusion per depth
+  int rC[GRID_SIZE];            ///< Number of candidate exclusion per depth
+  int rV[GRID_SIZE];            ///< Number of value exclusion per depth
+  int rR[GRID_SIZE];            ///< Number of region exclusion per depth
   int rI;                       ///< Number of intersection exclusion
-  char theSolution[81][20];     ///< Last solution found
+  char theSolution[GRID_SIZE * GRID_SIZE][20];  ///< Last solution found
 } counters;
 
 /// Definition of region types.
-typedef enum
+typedef enum                    // Fixed constant values since the enumeration may be used in arithmetics
 {
-  ROW,
-  COLUMN,
-  SQUARE
+  ROW = 0,
+  COLUMN = 1,
+  SQUARE = 2,
 } regionType;
 
 /// Converts a bit into a value.
 /// @param[in] bit to be converted.
 /// @return value
 static char
-VALUE (unsigned short int bit)
+VALUE (unsigned int bit)
 {
   if (NB_BITS[bit] != 1)
     return 0;
   else
-    for (int i = 1; i <= 9; i++)
-    {
+    for (const char *d = VALUE_NAME; *d && bit; (bit >>= 1), (d++))
       if (bit & 1)
-        return DIGIT[i];
-      bit >>= 1;
-    }
+        return *d;
 
-  return DIGIT[0];
+  return EMPTY_CELL;
 }
 
 /// Converts a bit pattern into values.
 /// @param[in] bits pattern to be converted.
 /// @return string of values.
 static const char *
-VALUES (unsigned short int bits)
+VALUES (unsigned int bits)
 {
-  static char _v[9 * 2];
+  static char _v[GRID_SIZE * 2];
   int pos = 0;
 
-  for (int i = 1; i <= 9; i++)
-  {
+  for (const char *d = VALUE_NAME; *d && bits; (bits >>= 1), (d++))
     if (bits & 1)
     {
-      _v[pos++] = DIGIT[i];
+      _v[pos++] = *d;
       _v[pos++] = ' ';
     }
-    bits >>= 1;
-  }
+
   if (pos)
     pos--;
   _v[pos] = 0;
@@ -626,14 +644,14 @@ static int grid_countEmptyCells (grid *);
 static int
 intersection_skim (intersection * inter, counters * stats)
 {
-  unsigned short int values[2] = { 0, 0 };
-  for (int i = 0; i < 6; i++)
+  unsigned int values[2] = { 0, 0 };
+  for (int i = 0; i < GRID_SIZE - SQUARE_SIZE; i++)
   {
     values[0] |= inter->r1_cell[i]->value;
     values[1] |= inter->r2_cell[i]->value;
   }
 
-  unsigned short int intersection = values[0] ^ values[1];
+  unsigned int intersection = values[0] ^ values[1];
 
   if (intersection)
   {
@@ -655,30 +673,30 @@ intersection_skim (intersection * inter, counters * stats)
         sudoku_on_message (inter->grid->id, get_message_args (rule, 1));
     }
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < GRID_SIZE - SQUARE_SIZE; i++)
     {
-      unsigned short int oldval = inter->r1_cell[i]->value;
+      unsigned int oldval = inter->r1_cell[i]->value;
 
       inter->r1_cell[i]->value &= ~intersection;
       if (oldval != inter->r1_cell[i]->value)
         if (grid_cell_changed (inter->grid, inter->r1_cell[i]))
         {
-          int nbCells = 81 - grid_countEmptyCells (inter->grid);
+          int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (inter->grid);
 
           sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, inter->r1_cell[i]->name,
                    VALUE (inter->r1_cell[i]->value));
         }
     }
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < GRID_SIZE - SQUARE_SIZE; i++)
     {
-      unsigned short int oldval = inter->r2_cell[i]->value;
+      unsigned int oldval = inter->r2_cell[i]->value;
 
       inter->r2_cell[i]->value &= ~intersection;
       if (oldval != inter->r2_cell[i]->value)
         if (grid_cell_changed (inter->grid, inter->r2_cell[i]))
         {
-          int nbCells = 81 - grid_countEmptyCells (inter->grid);
+          int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (inter->grid);
 
           sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, inter->r2_cell[i]->name,
                    VALUE (inter->r2_cell[i]->value));
@@ -695,17 +713,17 @@ intersection_skim (intersection * inter, counters * stats)
 /// @param [in,out] stats Statistic data
 /// @return skimming depth
 static int
-value_skim (grid * g, unsigned short int value, counters * stats)
+value_skim (grid * g, unsigned int value, counters * stats)
 {
-  unsigned short int rows;
-  unsigned short int columns;
-  unsigned short int bits;
+  unsigned int rows;
+  unsigned int columns;
+  unsigned int bits;
 
   int stop = 0;
 
-  for (unsigned short int depth = 1; depth <= 9 && !stop; depth++)
+  for (unsigned int depth = 1; depth <= GRID_SIZE && !stop; depth++)
   {
-    for (unsigned short int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
+    for (unsigned int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
     {
       bits = SUBSETS[index];
 
@@ -715,10 +733,10 @@ value_skim (grid * g, unsigned short int value, counters * stats)
 
       rows = bits;
       columns = 0;
-      for (unsigned short int row = 0; row < 9; row++)
+      for (unsigned int row = 0; row < GRID_SIZE; row++)
       {
         if (rows & 1)
-          for (unsigned short int col = 0; col < 9; col++)
+          for (unsigned int col = 0; col < GRID_SIZE; col++)
             if (g->cell[row][col].value & (1 << (value - 1)))
               columns |= (1 << col);    // columns of all cells in 'rows' of subset which contain value
         rows >>= 1;
@@ -729,20 +747,20 @@ value_skim (grid * g, unsigned short int value, counters * stats)
       else if (NB_BITS[columns] == NB_BITS[bits])
       {
         // other lines than thoses of 'rows' don't contain value in those 'columns'
-        unsigned short int skimLevel = 0;
-        unsigned short int otherrows = ~bits;
+        unsigned int skimLevel = 0;
+        unsigned int otherrows = ~bits;
 
-        for (unsigned short int row = 0; row < 9; row++)
+        for (unsigned int row = 0; row < GRID_SIZE; row++)
         {
           if (otherrows & 1)
           {
-            unsigned short int cols = columns;
+            unsigned int cols = columns;
 
-            for (unsigned short int col = 0; col < 9; col++)
+            for (unsigned int col = 0; col < GRID_SIZE; col++)
             {
               if (cols & 1)
               {
-                unsigned short int oldval = g->cell[row][col].value;
+                unsigned int oldval = g->cell[row][col].value;
 
                 g->cell[row][col].value &= ~(1 << (value - 1));
                 if (oldval != g->cell[row][col].value)
@@ -750,7 +768,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
                   skimLevel = NB_BITS[bits];
                   if (grid_cell_changed (g, &g->cell[row][col]))
                   {
-                    int nbCells = 81 - grid_countEmptyCells (g);
+                    int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (g);
 
                     sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
                              VALUE (g->cell[row][col].value));
@@ -768,12 +786,12 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         {
           if (sudokuOnMessageHandlers)
           {
-            unsigned short int d = 0;
+            unsigned int d = 0;
             char noprint = 0;
 
             if (NB_BITS[bits] == 1)
-              for (unsigned short int rows = bits; rows; rows >>= 1, d++)
-                for (unsigned short int col = 0; col < 9; col++)
+              for (unsigned int rows = bits; rows; rows >>= 1, d++)
+                for (unsigned int col = 0; col < GRID_SIZE; col++)
                   if (g->cell[d][col].value & (1 << (value - 1)) && g->cell[d][col].given)
                     noprint = 1;
 
@@ -784,7 +802,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
             char col_names[2 * NB_BITS[bits] + 1];
 
             d = 0;
-            for (unsigned short int rows = bits; rows; rows >>= 1, d++)
+            for (unsigned int rows = bits; rows; rows >>= 1, d++)
               if (rows & 1)
               {
                 row_names[2 * NB_BITS[rows] - 2] = ' ';
@@ -792,7 +810,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
               }
             row_names[2 * NB_BITS[bits]] = '\0';
             d = 0;
-            for (unsigned short int cols = columns; cols; cols >>= 1, d++)
+            for (unsigned int cols = columns; cols; cols >>= 1, d++)
               if (cols & 1)
               {
                 col_names[2 * NB_BITS[cols] - 2] = ' ';
@@ -831,10 +849,10 @@ value_skim (grid * g, unsigned short int value, counters * stats)
 
       columns = bits;
       rows = 0;
-      for (unsigned short int col = 0; col < 9; col++)
+      for (unsigned int col = 0; col < GRID_SIZE; col++)
       {
         if (columns & 1)
-          for (unsigned short int row = 0; row < 9; row++)
+          for (unsigned int row = 0; row < GRID_SIZE; row++)
             if (g->cell[row][col].value & (1 << (value - 1)))
               rows |= (1 << row);       // columns of all cells in 'rows' of subset which contain value
         columns >>= 1;
@@ -845,20 +863,20 @@ value_skim (grid * g, unsigned short int value, counters * stats)
       else if (NB_BITS[rows] == NB_BITS[bits])
       {
         // other lines than thoses of 'rows' don't contain value in those 'columns'
-        unsigned short int skimLevel = 0;
-        unsigned short int othercols = ~bits;
+        unsigned int skimLevel = 0;
+        unsigned int othercols = ~bits;
 
-        for (unsigned short int col = 0; col < 9; col++)
+        for (unsigned int col = 0; col < GRID_SIZE; col++)
         {
           if (othercols & 1)
           {
-            unsigned short int lrows = rows;
+            unsigned int lrows = rows;
 
-            for (unsigned short int row = 0; row < 9; row++)
+            for (unsigned int row = 0; row < GRID_SIZE; row++)
             {
               if (lrows & 1)
               {
-                unsigned short int oldval = g->cell[row][col].value;
+                unsigned int oldval = g->cell[row][col].value;
 
                 g->cell[row][col].value &= ~(1 << (value - 1));
                 if (oldval != g->cell[row][col].value)
@@ -866,7 +884,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
                   skimLevel = NB_BITS[bits];
                   if (grid_cell_changed (g, &g->cell[row][col]))
                   {
-                    int nbCells = 81 - grid_countEmptyCells (g);
+                    int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (g);
 
                     sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, g->cell[row][col].name,
                              VALUE (g->cell[row][col].value));
@@ -884,12 +902,12 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         {
           if (sudokuOnMessageHandlers)
           {
-            unsigned short int d = 0;
+            unsigned int d = 0;
             char noprint = 0;
 
             if (NB_BITS[bits] == 1)
-              for (unsigned short int columns = bits; columns; columns >>= 1, d++)
-                for (unsigned short int row = 0; row < 9; row++)
+              for (unsigned int columns = bits; columns; columns >>= 1, d++)
+                for (unsigned int row = 0; row < GRID_SIZE; row++)
                   if (g->cell[row][d].value & (1 << (value - 1)) && g->cell[row][d].given)
                     noprint = 1;
 
@@ -900,7 +918,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
             char col_names[2 * NB_BITS[bits] + 1];
 
             d = 0;
-            for (unsigned short int lrows = rows; lrows; lrows >>= 1, d++)
+            for (unsigned int lrows = rows; lrows; lrows >>= 1, d++)
               if (lrows & 1)
               {
                 row_names[2 * NB_BITS[lrows] - 2] = ' ';
@@ -908,7 +926,7 @@ value_skim (grid * g, unsigned short int value, counters * stats)
               }
             row_names[2 * NB_BITS[rows]] = '\0';
             d = 0;
-            for (unsigned short int cols = bits; cols; cols >>= 1, d++)
+            for (unsigned int cols = bits; cols; cols >>= 1, d++)
               if (cols & 1)
               {
                 col_names[2 * NB_BITS[cols] - 2] = ' ';
@@ -941,8 +959,8 @@ value_skim (grid * g, unsigned short int value, counters * stats)
         }                       // if (skimLevel)
       }                         // if (NB_BITS[values] == NB_BITS[bits])
 
-    }                           // for (unsigned short int index=SUBSET_INDEX[depth-1] ; index<SUBSET_INDEX[depth] ; index++)
-  }                             // for (unsigned short int depth = 1 ; depth<=9 && !stop ; depth++)
+    }                           // for (unsigned int index=SUBSET_INDEX[depth-1] ; index<SUBSET_INDEX[depth] ; index++)
+  }                             // for (unsigned int depth = 1 ; depth<=9 && !stop ; depth++)
 
   return stop;
 }
@@ -954,15 +972,15 @@ value_skim (grid * g, unsigned short int value, counters * stats)
 static int
 region_skim (region * reg, counters * stats)
 {
-  unsigned short int cells;
-  unsigned short int values;
-  unsigned short int bits;
+  unsigned int cells;
+  unsigned int values;
+  unsigned int bits;
 
   int stop = 0;
 
-  for (unsigned short int depth = 1; depth <= 9 && !stop; depth++)
+  for (unsigned int depth = 1; depth <= GRID_SIZE && !stop; depth++)
   {
-    for (unsigned short int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
+    for (unsigned int index = SUBSET_INDEX[depth - 1]; index < SUBSET_INDEX[depth]; index++)
     {
       bits = SUBSETS[index];
 
@@ -972,7 +990,7 @@ region_skim (region * reg, counters * stats)
 
       cells = bits;
       values = 0;
-      for (unsigned short int cell = 0; cell < 9; cell++)
+      for (unsigned int cell = 0; cell < GRID_SIZE; cell++)
       {
         if (cells & 1)
           values |= reg->cell[cell]->value;     // values of all cells in 'cells' of subset
@@ -984,14 +1002,14 @@ region_skim (region * reg, counters * stats)
       else if (NB_BITS[values] == NB_BITS[bits])
       {
         // cells of region other than those of 'cells' do not contain values of 'values'
-        unsigned short int skimLevel = 0;
-        unsigned short int othercells = ~bits;
+        unsigned int skimLevel = 0;
+        unsigned int othercells = ~bits;
 
-        for (unsigned short int cell = 0; cell < 9; cell++)
+        for (unsigned int cell = 0; cell < GRID_SIZE; cell++)
         {
           if (othercells & 1)
           {
-            unsigned short int oldval = reg->cell[cell]->value;
+            unsigned int oldval = reg->cell[cell]->value;
 
             reg->cell[cell]->value &= ~values;  // remove values of all cells in 'othercells' of region
             if (oldval != reg->cell[cell]->value)
@@ -999,7 +1017,7 @@ region_skim (region * reg, counters * stats)
               skimLevel = NB_BITS[bits];
               if (grid_cell_changed (reg->grid, reg->cell[cell]))
               {
-                int nbCells = 81 - grid_countEmptyCells (reg->grid);
+                int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (reg->grid);
 
                 sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, reg->cell[cell]->name,
                          VALUE (reg->cell[cell]->value));
@@ -1014,21 +1032,21 @@ region_skim (region * reg, counters * stats)
         {
           if (sudokuOnMessageHandlers)
           {
-            unsigned short int d = 0;
+            unsigned int d = 0;
             char noprint = 0;
 
             if (NB_BITS[bits] == 1)
-              for (unsigned short int cells = bits; cells; cells >>= 1, d++)
+              for (unsigned int cells = bits; cells; cells >>= 1, d++)
                 if (cells & 1 && reg->cell[d]->given)
                   noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
 
             // Display:
-            char names[9 * 3 + 2] = " ";
+            char names[GRID_SIZE * 3 + 2] = " ";
 
             d = 0;
-            for (unsigned short int cells = bits; cells; cells >>= 1, d++)
+            for (unsigned int cells = bits; cells; cells >>= 1, d++)
               if (cells & 1)
               {
                 strcat (names, reg->cell[d]->name);
@@ -1065,7 +1083,7 @@ region_skim (region * reg, counters * stats)
       ////////////////////////////////////////////
 
       cells = 0;
-      for (unsigned short int cell = 9; cell > 0; cell--)
+      for (unsigned int cell = GRID_SIZE; cell > 0; cell--)
       {
         cells <<= 1;
         if (bits & reg->cell[cell - 1]->value)  // cell of region contains at least one value in 'bits'
@@ -1077,15 +1095,15 @@ region_skim (region * reg, counters * stats)
       else if (NB_BITS[bits] == NB_BITS[cells])
       {
         // values other than those of 'bits' are not contained in cells of cells
-        unsigned short int tmp = cells;
-        unsigned short int skimLevel = 0;
-        unsigned short int othervalues = ~bits;
+        unsigned int tmp = cells;
+        unsigned int skimLevel = 0;
+        unsigned int othervalues = ~bits;
 
-        for (unsigned short int cell = 0; cell < 9; cell++)
+        for (unsigned int cell = 0; cell < GRID_SIZE; cell++)
         {
           if (cells & 1)
           {
-            unsigned short int oldval = reg->cell[cell]->value;
+            unsigned int oldval = reg->cell[cell]->value;
 
             reg->cell[cell]->value &= ~othervalues;     // remove other values of all cells in 'cells' of region
             if (oldval != reg->cell[cell]->value)
@@ -1093,7 +1111,7 @@ region_skim (region * reg, counters * stats)
               skimLevel = NB_BITS[bits];
               if (grid_cell_changed (reg->grid, reg->cell[cell]))
               {
-                int nbCells = 81 - grid_countEmptyCells (reg->grid);
+                int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (reg->grid);
 
                 sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c", nbCells, reg->cell[cell]->name,
                          VALUE (reg->cell[cell]->value));
@@ -1108,21 +1126,21 @@ region_skim (region * reg, counters * stats)
         {
           if (sudokuOnMessageHandlers)
           {
-            unsigned short int d = 0;
+            unsigned int d = 0;
             char noprint = 0;
 
             if (NB_BITS[bits] == 1)
-              for (unsigned short int cells = tmp; cells; cells >>= 1, d++)
+              for (unsigned int cells = tmp; cells; cells >>= 1, d++)
                 if (cells & 1 && reg->cell[d]->given)
                   noprint = 1;
 
             char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
 
             // Display:
-            char names[9 * 3 + 2] = " ";
+            char names[GRID_SIZE * 3 + 2] = " ";
 
             d = 0;
-            for (unsigned short int cells = tmp; cells; cells >>= 1, d++)
+            for (unsigned int cells = tmp; cells; cells >>= 1, d++)
               if (cells & 1)
               {
                 strcat (names, reg->cell[d]->name);
@@ -1153,8 +1171,8 @@ region_skim (region * reg, counters * stats)
             stop = skimLevel;
         }                       // if (skimLevel)
       }                         // if (NB_BITS[bits] == NB_BITS[cells])
-    }                           // for (unsigned short int index=SUBSET_INDEX[depth-1] ; index<SUBSET_INDEX[depth] ; index++)
-  }                             // for (unsigned short int depth = 1 ; depth<=9 && !stop ; depth++)
+    }                           // for (unsigned int index=SUBSET_INDEX[depth-1] ; index<SUBSET_INDEX[depth] ; index++)
+  }                             // for (unsigned int depth = 1 ; depth<=9 && !stop ; depth++)
 
   return stop;
 }
@@ -1165,10 +1183,10 @@ region_skim (region * reg, counters * stats)
 static int
 grid_countEmptyCells (grid * g)
 {
-  int ret = 81;
+  int ret = GRID_SIZE * GRID_SIZE;
 
-  for (int i = 0; i < 81; i++)
-    if (NB_BITS[g->cell[i / 9][i % 9].value] == 1)
+  for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+    if (NB_BITS[g->cell[i / GRID_SIZE][i % GRID_SIZE].value] == 1)
       ret--;
 
   return (ret);
@@ -1182,15 +1200,15 @@ get_event_args (grid * g)
 {
   sudoku_grid_event_args sudokuOnEventArgs;
 
-  for (int r = 0; r < 9; r++)
-    for (int c = 0; c < 9; c++)
-      for (int v = 0; v < 9; v++)
+  for (int r = 0; r < GRID_SIZE; r++)
+    for (int c = 0; c < GRID_SIZE; c++)
+      for (int v = 0; v < GRID_SIZE; v++)
         if (g->cell[r][c].value & (1 << v))
           sudokuOnEventArgs.grid[r][c][v] = v + 1;
         else
           sudokuOnEventArgs.grid[r][c][v] = 0;
 
-  sudokuOnEventArgs.nbCells = 81 - grid_countEmptyCells (g);
+  sudokuOnEventArgs.nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (g);
 
   return (sudokuOnEventArgs);
 }
@@ -1200,62 +1218,67 @@ get_event_args (grid * g)
 static void
 grid_init (grid * g)
 {
-  for (int r = 0; r < 27; r++)  // 27 regions
+  for (int r = 0; r < GRID_SIZE * 3; r++)       // 27 regions
   {
     g->region[r].grid = g;
 
-    regionType t = r / 9;
+    regionType t = r / GRID_SIZE;
 
     switch (t)
     {
       case ROW:
-        for (int c = 0; c < 9; c++)     // 9 cells of region
-          g->region[r].cell[c] = &(g->cell[r % 9][c]);
+        for (int c = 0; c < GRID_SIZE; c++)     // 9 cells of region
+          g->region[r].cell[c] = &(g->cell[r % GRID_SIZE][c]);
         break;
       case COLUMN:
-        for (int c = 0; c < 9; c++)     // 9 cells of region
-          g->region[r].cell[c] = &(g->cell[c][r % 9]);
+        for (int c = 0; c < GRID_SIZE; c++)     // 9 cells of region
+          g->region[r].cell[c] = &(g->cell[c][r % GRID_SIZE]);
         break;
       case SQUARE:
-        for (int c = 0; c < 9; c++)     // 9 cells of region
-          g->region[r].cell[c] = &(g->cell[c / 3 + 3 * ((r % 9) / 3)][c % 3 + 3 * (r % 3)]);
+        for (int c = 0; c < GRID_SIZE; c++)     // 9 cells of region
+          g->region[r].cell[c] =
+            &(g->cell[c / SQUARE_SIZE + SQUARE_SIZE * ((r % GRID_SIZE) / SQUARE_SIZE)][c % SQUARE_SIZE +
+                                                                                       SQUARE_SIZE * (r %
+                                                                                                      SQUARE_SIZE)]);
         break;
     }
   }
 
-  for (int i = 0; i < 54; i++)  // 54 intersections
+  for (int i = 0; i < GRID_SIZE * SQUARE_SIZE * 2; i++) // 54 intersections
   {
     g->intersection[i].grid = g;
 
-    regionType direction = i / 27;
-    int inter = i % 27;
+    regionType direction = i / (GRID_SIZE * SQUARE_SIZE);
+    int inter = i % (GRID_SIZE * SQUARE_SIZE);
 
     switch (direction)
     {
       case COLUMN:
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < SQUARE_SIZE; j++)
         {
-          int r = inter / 3;
-          int c = (3 * inter + j) % 9;
+          int r = inter / SQUARE_SIZE;
+          int c = (SQUARE_SIZE * inter + j) % GRID_SIZE;
 
-          g->intersection[i].r1_cell[j] = &(g->cell[r][(c + 3) % 9]);
-          g->intersection[i].r1_cell[j + 3] = &(g->cell[r][(c + 6) % 9]);
-
-          g->intersection[i].r2_cell[j] = &(g->cell[3 * (r / 3) + (r + 1) % 3][c]);
-          g->intersection[i].r2_cell[j + 3] = &(g->cell[3 * (r / 3) + (r + 2) % 3][c]);
+          for (int k = 0; k < SQUARE_SIZE - 1; k++)
+          {
+            g->intersection[i].r1_cell[j + SQUARE_SIZE * k] = &(g->cell[r][(c + SQUARE_SIZE * (k + 1)) % GRID_SIZE]);
+            g->intersection[i].r2_cell[j + SQUARE_SIZE * k] =
+              &(g->cell[SQUARE_SIZE * (r / SQUARE_SIZE) + (r + k + 1) % SQUARE_SIZE][c]);
+          }
         }
         break;
       case ROW:
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < SQUARE_SIZE; j++)
         {
-          int r = 3 * (inter / 9) + j;
-          int c = inter % 9;
+          int r = SQUARE_SIZE * (inter / GRID_SIZE) + j;
+          int c = inter % GRID_SIZE;
 
-          g->intersection[i].r1_cell[j] = &(g->cell[(r + 3) % 9][c]);
-          g->intersection[i].r1_cell[j + 3] = &(g->cell[(r + 6) % 9][c]);
-
-          g->intersection[i].r2_cell[j] = &(g->cell[r][3 * (c / 3) + (c + 1) % 3]);
-          g->intersection[i].r2_cell[j + 3] = &(g->cell[r][3 * (c / 3) + (c + 2) % 3]);
+          for (int k = 0; k < SQUARE_SIZE - 1; k++)
+          {
+            g->intersection[i].r1_cell[j + SQUARE_SIZE * k] = &(g->cell[(r + SQUARE_SIZE * (k + 1)) % GRID_SIZE][c]);
+            g->intersection[i].r2_cell[j + SQUARE_SIZE * k] =
+              &(g->cell[r][SQUARE_SIZE * (c / SQUARE_SIZE) + (c + k + 1) % SQUARE_SIZE]);
+          }
         }
         break;
       case SQUARE:
@@ -1272,12 +1295,12 @@ grid_init (grid * g)
 static int
 grid_cell_changed (grid * g, cell * cell)
 {
-  for (int ir = 0; ir < 27; ir++)
+  for (int ir = 0; ir < GRID_SIZE * 3; ir++)
   {
     if (g->region[ir].changed)
       continue;
 
-    for (int c = 0; c < 9; c++)
+    for (int c = 0; c < GRID_SIZE; c++)
       if (g->region[ir].cell[c] == cell)
       {
         g->region[ir].changed = 1;
@@ -1285,12 +1308,12 @@ grid_cell_changed (grid * g, cell * cell)
       }
   }
 
-  for (int ir = 0; ir < 54; ir++)
+  for (int ir = 0; ir < GRID_SIZE * SQUARE_SIZE * 2; ir++)
   {
     if (g->intersection[ir].changed)
       continue;
 
-    for (int c = 0; c < 6; c++)
+    for (int c = 0; c < (GRID_SIZE - SQUARE_SIZE); c++)
       if (g->intersection[ir].r1_cell[c] == cell || g->intersection[ir].r2_cell[c] == cell)
       {
         g->intersection[ir].changed = 1;
@@ -1300,7 +1323,7 @@ grid_cell_changed (grid * g, cell * cell)
 
   if (NB_BITS[cell->value] == 1)
   {
-    int nbCells = 81 - grid_countEmptyCells (g);
+    int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (g);
 
     if (sudokuOnMessageHandlers)
     {
@@ -1325,10 +1348,10 @@ grid_cell_changed (grid * g, cell * cell)
 static void
 grid_initCell (grid * g, int l, int c, int v)
 {
-  if (l < 0 || l > 8 || c < 0 || c > 8 || v < 0 || v > 9)
+  if (l < 0 || l >= GRID_SIZE || c < 0 || c >= GRID_SIZE || v < 0 || v > GRID_SIZE)
     return;
 
-  static unsigned short int all = (1 << 9) - 1;
+  static unsigned int all = (1 << GRID_SIZE) - 1;
 
   if (v == 0)
   {
@@ -1346,28 +1369,28 @@ grid_initCell (grid * g, int l, int c, int v)
 /// @param[in] g Grid
 /// @param[in] intg Array
 static void
-grid_init_from_int9x9 (grid * g, int intg[9][9])
+grid_init_from_int9x9 (grid * g, int intg[GRID_SIZE][GRID_SIZE])
 {
   grid_init (g);
 
-  for (int i = 0; i < 9 * 9; i++)
-    grid_initCell (g, i / 9, i % 9, intg[i / 9][i % 9]);
+  for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+    grid_initCell (g, i / GRID_SIZE, i % GRID_SIZE, intg[i / GRID_SIZE][i % GRID_SIZE]);
 
-  for (int r = 0; r < 9; r++)   // 9 rows
-    for (int c = 0; c < 9; c++) // 9 colmuns
+  for (int r = 0; r < GRID_SIZE; r++)   // 9 rows
+    for (int c = 0; c < GRID_SIZE; c++) // 9 colmuns
     {
       g->cell[r][c].name[0] = ROW_NAME[r];
       g->cell[r][c].name[1] = COLUMN_NAME[c];
       g->cell[r][c].name[2] = 0;
     }
 
-  for (int ir = 0; ir < 27; ir++)
+  for (int ir = 0; ir < GRID_SIZE * 3; ir++)
   {
     g->region[ir].changed = 1;
     g->region[ir].name = REGION_NAME[ir];
   }
 
-  for (int ir = 0; ir < 54; ir++)
+  for (int ir = 0; ir < GRID_SIZE * SQUARE_SIZE * 2; ir++)
   {
     g->intersection[ir].changed = 1;
     g->intersection[ir].name = INTERSECTION_NAME[ir];
@@ -1401,7 +1424,7 @@ grid_skimValues (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
 
-  for (unsigned short int value = 1; value <= 9; value++)
+  for (unsigned int value = 1; value <= GRID_SIZE; value++)
   {
     int ret = value_skim (g, value, stats);
 
@@ -1438,7 +1461,7 @@ grid_skimRegions (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
 
-  for (int ir = 0; ir < 27; ir++)
+  for (int ir = 0; ir < GRID_SIZE * 3; ir++)
   {
     if (g->region[ir].changed == 0)
       continue;
@@ -1478,7 +1501,7 @@ grid_skimIntersections (grid * g, counters * stats)
 {
   int gridSkimmed = 0;
 
-  for (int ir = 0; ir < 54; ir++)
+  for (int ir = 0; ir < GRID_SIZE * SQUARE_SIZE * 2; ir++)
   {
     if (g->intersection[ir].changed == 0)
       continue;
@@ -1538,11 +1561,11 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
   // the grid is valid but :
   // no skim done -> needs hypothesis (backtracking, recursive call to grid_solveByElimination)
   int ipivot = -1;
-  unsigned short int min = 10;
+  unsigned int min = 10;
 
-  for (int i = 0; i < 81; i++)
+  for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
   {
-    unsigned short int j = NB_BITS[g->cell[i / 9][i % 9].value];
+    unsigned int j = NB_BITS[g->cell[i / GRID_SIZE][i % GRID_SIZE].value];
 
     if (j >= 2 && j < min)
     {
@@ -1559,9 +1582,9 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
       sudoku_on_change (g->id, get_event_args (g));
 
     int retCode = -1;
-    unsigned short int value = 1;
+    unsigned int value = 1;
 
-    for (unsigned short int bits = g->cell[ipivot / 9][ipivot % 9].value; bits != 0; bits >>= 1, value <<= 1)
+    for (unsigned int bits = g->cell[ipivot / GRID_SIZE][ipivot % GRID_SIZE].value; bits != 0; bits >>= 1, value <<= 1)
     {
       if (!(bits & 1))
         continue;
@@ -1569,12 +1592,12 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
       grid clone;
 
       grid_copy (&clone, g);
-      cell *pivot = &(clone.cell[ipivot / 9][ipivot % 9]);
+      cell *pivot = &(clone.cell[ipivot / GRID_SIZE][ipivot % GRID_SIZE]);
 
       pivot->value = value;     // cell modified here
 
       //stats->nbSteps++ ;
-      int nbCells = 81 - grid_countEmptyCells (&clone);
+      int nbCells = GRID_SIZE * GRID_SIZE - grid_countEmptyCells (&clone);
 
       sprintf (stats->theSolution[nbCells - 1], "%2i. %s=%c?", nbCells, pivot->name, VALUE (pivot->value));
       if (sudokuOnMessageHandlers)
@@ -1582,7 +1605,8 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
         char rule[SUDOKU_MAX_MESSAGE_LENGTH] = "";
 
         MESSAGE_APPEND (rule, _("  ??? Hypothesis: cell %s = %c ? (out of %s) [%2i] ???\n"),
-                        pivot->name, VALUE (pivot->value), VALUES (g->cell[ipivot / 9][ipivot % 9].value), nbCells);
+                        pivot->name, VALUE (pivot->value),
+                        VALUES (g->cell[ipivot / GRID_SIZE][ipivot % GRID_SIZE].value), nbCells);
         //MESSAGE_APPEND (rule, "  [%2i]\n", nbCells);
         sudoku_on_message (g->id, get_message_args (rule, 1));
       }
@@ -1632,9 +1656,9 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
 
       MESSAGE_APPEND (rule, _("Solved using elimination method (solution #%i).\n"), stats->nbSolutions);
 
-      for (int i = 0; i < 81; i++)
+      for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
         if (stats->theSolution[i][0] != 0)
-          MESSAGE_APPEND (rule, "%s%c", stats->theSolution[i], ((i + 1) % 3 ? '\t' : '\n'));
+          MESSAGE_APPEND (rule, "%s%c", stats->theSolution[i], ((i + 1) % SQUARE_SIZE ? '\t' : '\n'));
 
       MESSAGE_APPEND (rule, "\n");
       sudoku_on_message (g->id, get_message_args (rule, 0));
@@ -1652,21 +1676,21 @@ grid_solveByElimination (grid * g, findSolutions find, counters * stats)
 /// Construct event argument from an array.
 /// @param[in] g array grid
 static sudoku_grid_event_args
-int9x9_print (int g[9][9])
+int9x9_print (int g[GRID_SIZE][GRID_SIZE])
 {
   int nbc = 0;
 
-  for (int i = 0; i < 9 * 9; i++)
-    if (g[i / 9][i % 9])
+  for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+    if (g[i / GRID_SIZE][i % GRID_SIZE])
       nbc++;
 
   sudoku_grid_event_args sudokuOnEventArgs;
 
-  for (int r = 0; r < 9; r++)
-    for (int c = 0; c < 9; c++)
+  for (int r = 0; r < GRID_SIZE; r++)
+    for (int c = 0; c < GRID_SIZE; c++)
     {
       sudokuOnEventArgs.grid[r][c][0] = g[r][c];
-      for (int v = 1; v < 9; v++)
+      for (int v = 1; v < GRID_SIZE; v++)
         sudokuOnEventArgs.grid[r][c][v] = 0;
     }
 
@@ -1679,14 +1703,14 @@ int9x9_print (int g[9][9])
 /// @param[in] g array grid
 /// @return 1 if grid is valid
 static int
-int9x9_check (int g[9][9])
+int9x9_check (int g[GRID_SIZE][GRID_SIZE])
 {
   regionType t[3] = { ROW, COLUMN, SQUARE };
 
-  for (int row = 0; row < 9; row++)
-    for (int column = 0; column < 9; column++)
+  for (int row = 0; row < GRID_SIZE; row++)
+    for (int column = 0; column < GRID_SIZE; column++)
       if (g[row][column] != 0)
-        for (int cell = 0; cell < 9; cell++)
+        for (int cell = 0; cell < GRID_SIZE; cell++)
           for (int ir = 0; ir < 3; ir++)
             switch (t[ir])
             {
@@ -1699,9 +1723,10 @@ int9x9_check (int g[9][9])
                   return 0;
                 break;
               case SQUARE:
-                if ((3 * (row / 3) + cell / 3 != row) &&
-                    (3 * (column / 3) + cell % 3) != column &&
-                    (g[3 * (row / 3) + cell / 3][3 * (column / 3) + cell % 3] == g[row][column]))
+                if ((SQUARE_SIZE * (row / SQUARE_SIZE) + cell / SQUARE_SIZE != row) &&
+                    (SQUARE_SIZE * (column / SQUARE_SIZE) + cell % SQUARE_SIZE) != column &&
+                    (g[SQUARE_SIZE * (row / SQUARE_SIZE) + cell / SQUARE_SIZE]
+                     [SQUARE_SIZE * (column / SQUARE_SIZE) + cell % SQUARE_SIZE] == g[row][column]))
                   return 0;
                 break;
             }
@@ -1716,32 +1741,34 @@ int9x9_check (int g[9][9])
 /// @param[out] stats Statistic data
 /// @return 1 if some candidates have been excluded, 0 otherwise, -1 if g is invalide
 static int
-int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, counters * stats)
+int9x9_solveByBacktracking (uintptr_t id, int g[GRID_SIZE][GRID_SIZE], findSolutions find, counters * stats)
 {
   int retCode = 0;
   int ii;
 
-  for (ii = 0; ii < 81 && g[ii / 9][ii % 9] != 0; ii++)
+  for (ii = 0; ii < GRID_SIZE * GRID_SIZE && g[ii / GRID_SIZE][ii % GRID_SIZE] != 0; ii++)
     ;
 
-  if (ii < 81)
+  if (ii < GRID_SIZE * GRID_SIZE)
   {
-    int l = ii / 9;
-    int c = ii % 9;
+    int l = ii / GRID_SIZE;
+    int c = ii % GRID_SIZE;
 
-    for (int value = 1; value <= 9; value++)
+    for (int value = 1; value <= GRID_SIZE; value++)
     {
       int skipValue = 0;
 
-      for (int cell = 0; cell < 9; cell++)
-        if (g[l][cell] == value || g[cell][c] == value || g[3 * (l / 3) + cell / 3][3 * (c / 3) + cell % 3] == value)
+      for (int cell = 0; cell < GRID_SIZE; cell++)
+        if (g[l][cell] == value || g[cell][c] == value
+            || g[SQUARE_SIZE * (l / SQUARE_SIZE) + cell / SQUARE_SIZE][SQUARE_SIZE * (c / SQUARE_SIZE) +
+                                                                       cell % SQUARE_SIZE] == value)
           skipValue = 1;
 
       if (!skipValue)
       {
-        int clone[9][9];
+        int clone[GRID_SIZE][GRID_SIZE];
 
-        memcpy (clone, g, 81 * sizeof (int));
+        memcpy (clone, g, GRID_SIZE * GRID_SIZE * sizeof (int));
         clone[l][c] = value;
         stats->backtrackingTries++;
         int i = int9x9_solveByBacktracking (id, clone, find, stats);
@@ -1772,69 +1799,71 @@ int9x9_solveByBacktracking (uintptr_t id, int g[9][9], findSolutions find, count
 }
 
 /// Initialize static data.
-static void
+void
 sudoku_init (void)
 {
   // Internationalization with gettext
   bindtextdomain (PACKAGE, "./po");
 
   NB_BITS[0] = 0;
-  for (unsigned short int i = 1; i < (1 << 9); i++)
+  for (unsigned int i = 1; i < (1 << GRID_SIZE); i++)
     NB_BITS[i] = (i & 1) + NB_BITS[i >> 1];
 
-  for (int i = 0; i < 9; i++)
+  for (int i = 0; i < GRID_SIZE; i++)
   {
+    VALUE_NAME[i] = DIGIT[i];
     ROW_NAME[i] = toupper (ALPHABET[i]);
-    COLUMN_NAME[i] = tolower (ALPHABET[i + 9]);
+    COLUMN_NAME[i] = tolower (ALPHABET[i + (GRID_SIZE <= 9 ? GRID_SIZE : 0)]);
   }
 
-  for (int r = 0; r < 27; r++)  // 27 regions
+  for (int r = 0; r < GRID_SIZE * 3; r++)       // 27 regions
   {
-    regionType t = r / 9;
+    regionType t = r / GRID_SIZE;
 
     switch (t)
     {
       case ROW:
-        snprintf (REGION_NAME[r], sizeof (REGION_NAME[r]), _("Row %c"), ROW_NAME[r % 9]);
+        snprintf (REGION_NAME[r], sizeof (REGION_NAME[r]), _("Row %c"), ROW_NAME[r % GRID_SIZE]);
         break;
       case COLUMN:
-        snprintf (REGION_NAME[r], sizeof (REGION_NAME[r]), _("Column %c"), COLUMN_NAME[r % 9]);
+        snprintf (REGION_NAME[r], sizeof (REGION_NAME[r]), _("Column %c"), COLUMN_NAME[r % GRID_SIZE]);
         break;
       case SQUARE:
         snprintf (REGION_NAME[r], sizeof (REGION_NAME[r]), _("Square %c%c-%c%c"),
-                  ROW_NAME[3 * ((r % 9) / 3)], COLUMN_NAME[3 * (r % 3)],
-                  ROW_NAME[3 * ((r % 9) / 3) + 2], COLUMN_NAME[3 * (r % 3) + 2]);
+                  ROW_NAME[SQUARE_SIZE * ((r % GRID_SIZE) / SQUARE_SIZE)], COLUMN_NAME[SQUARE_SIZE * (r % SQUARE_SIZE)],
+                  ROW_NAME[SQUARE_SIZE * ((r % GRID_SIZE) / SQUARE_SIZE) + SQUARE_SIZE - 1],
+                  COLUMN_NAME[SQUARE_SIZE * (r % SQUARE_SIZE) + SQUARE_SIZE - 1]);
         break;
     }
   }
 
-  for (int i = 0; i < 54; i++)  // 54 intersections
+  for (int i = 0; i < GRID_SIZE * SQUARE_SIZE * 2; i++) // 54 intersections
   {
-    regionType direction = i / 27;
-    int inter = i % 27;
+    regionType direction = i / (GRID_SIZE * SQUARE_SIZE);
+    int inter = i % (GRID_SIZE * SQUARE_SIZE);
 
     switch (direction)
     {
       case COLUMN:
         snprintf (INTERSECTION_NAME[i], sizeof (INTERSECTION_NAME[i]), _("Segment %c%c-%c%c"),
-                  ROW_NAME[inter / 3], COLUMN_NAME[(3 * inter) % 9], ROW_NAME[inter / 3],
-                  COLUMN_NAME[(3 * inter + 2) % 9]);
+                  ROW_NAME[inter / SQUARE_SIZE], COLUMN_NAME[(SQUARE_SIZE * inter) % GRID_SIZE],
+                  ROW_NAME[inter / SQUARE_SIZE], COLUMN_NAME[(SQUARE_SIZE * inter + SQUARE_SIZE - 1) % GRID_SIZE]);
         break;
       case ROW:
         snprintf (INTERSECTION_NAME[i], sizeof (INTERSECTION_NAME[i]), _("Segment %c%c-%c%c"),
-                  ROW_NAME[3 * (inter / 9)], COLUMN_NAME[inter % 9], ROW_NAME[3 * (inter / 9) + 2],
-                  COLUMN_NAME[inter % 9]);
+                  ROW_NAME[SQUARE_SIZE * (inter / GRID_SIZE)], COLUMN_NAME[inter % GRID_SIZE],
+                  ROW_NAME[SQUARE_SIZE * (inter / GRID_SIZE) + SQUARE_SIZE - 1], COLUMN_NAME[inter % GRID_SIZE]);
         break;
       case SQUARE:
         break;
     }
   }
 
-  unsigned short int index = 0;
+  unsigned int index = 0;
 
-  for (int i = 0; i <= 9; i++)
+  for (int i = 0; i <= GRID_SIZE; i++)
   {
-    for (unsigned short int j = 0; j < (1 << 9); j++)
+    for (unsigned int j = 0; j < (1 << GRID_SIZE); j++)
       if (NB_BITS[j] == i)
       {
         SUBSETS[index++] = j;
@@ -1858,7 +1887,7 @@ exact_cover_search_solution_displayer (Univers head, unsigned long length, const
     return;
   }
 
-  int g[9][9];
+  int g[GRID_SIZE][GRID_SIZE];
 
   for (unsigned long i = 0; i < length; i++)
     if (solution[i] && isdigit (solution[i][1]) && isdigit (solution[i][3]) && isdigit (solution[i][5]))
@@ -1892,12 +1921,12 @@ sudoku_get_version (void)
 }
 
 method
-sudoku_solve (int g[9][9], method method, findSolutions find)
+sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
 {
   sudoku_init ();
 
-  for (int i = 0; i < 81; i++)
-    if (g[i / 9][i % 9] < 0 || g[i / 9][i % 9] > 9)
+  for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+    if (g[i / GRID_SIZE][i % GRID_SIZE] < 0 || g[i / GRID_SIZE][i % GRID_SIZE] > GRID_SIZE)
     {
       if (sudokuOnMessageHandlers)
       {
@@ -1913,7 +1942,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
 
   theStats.nbSolutions = theStats.nbRules = theStats.backtrackingLevel =
     theStats.backtrackingSteps = theStats.backtrackingTries = theStats.rI = 0;
-  for (int i = 0; i < 9; i++)
+  for (int i = 0; i < GRID_SIZE; i++)
     theStats.rC[i] = theStats.rV[i] = 0;
 
   // USING ELIMINATION METHOD
@@ -1928,7 +1957,7 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
       sudoku_on_init (theGridCells.id, get_event_args (&theGridCells));
 
     // Solve
-    for (int i = 0; i < 81; i++)
+    for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++)
       theStats.theSolution[i][0] = 0;
 
     // Searching for solutions.
@@ -1959,15 +1988,15 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
         MESSAGE_APPEND (rule, _("Solved with %i rules and %i hypothesis.\n"), theStats.nbRules,
                         theStats.backtrackingTries);
         MESSAGE_APPEND (rule, _("Cell Exclusion:\n"));
-        for (int i = 9; i > 0; i--)
+        for (int i = GRID_SIZE; i > 0; i--)
           if (theStats.rC[i - 1] > 0)
             MESSAGE_APPEND (rule, _("\tDepth %i: %i\n"), i, theStats.rC[i - 1]);
         MESSAGE_APPEND (rule, _("Candidate Exclusion:\n"));
-        for (int i = 9; i > 0; i--)
+        for (int i = GRID_SIZE; i > 0; i--)
           if (theStats.rV[i - 1] > 0)
             MESSAGE_APPEND (rule, _("\tDepth %i: %i\n"), i, theStats.rV[i - 1]);
         MESSAGE_APPEND (rule, _("Value Exclusion:\n"));
-        for (int i = 9; i > 0; i--)
+        for (int i = GRID_SIZE; i > 0; i--)
           if (theStats.rR[i - 1] > 0)
             MESSAGE_APPEND (rule, _("\tDepth %i: %i\n"), i, theStats.rR[i - 1]);
         MESSAGE_APPEND (rule, _("Regions Exclusion:\n"));
@@ -2009,29 +2038,31 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
     char inBox[] = "B?#?";
 
     // Initialize the columns of the matrix to be covered exactly.
-    char columns[strlen (inCell) * 81 + 81 + strlen (inRow) * 81 + 81 +
-                 strlen (inColumn) * 81 + 81 + strlen (inBox) * 81 + 81 + 1];
+    char columns[strlen (inCell) * (GRID_SIZE * GRID_SIZE) + (GRID_SIZE * GRID_SIZE) +
+                 strlen (inRow) * (GRID_SIZE * GRID_SIZE) + (GRID_SIZE * GRID_SIZE) +
+                 strlen (inColumn) * (GRID_SIZE * GRID_SIZE) + (GRID_SIZE * GRID_SIZE) +
+                 strlen (inBox) * (GRID_SIZE * GRID_SIZE) + (GRID_SIZE * GRID_SIZE) + 1];
     *columns = 0;
-    for (int i = 1; i <= 9; i++)
-      for (int j = 1; j <= 9; j++)
+    for (int i = 1; i <= GRID_SIZE; i++)
+      for (int j = 1; j <= GRID_SIZE; j++)
       {
-        inCell[1] = '0' + i;
-        inCell[3] = '0' + j;
+        inCell[1] = DIGIT[i];
+        inCell[3] = DIGIT[j];
         strcat (columns, inCell);
         strcat (columns, "|");
 
-        inRow[1] = '0' + i;
-        inRow[3] = '0' + j;
+        inRow[1] = DIGIT[i];
+        inRow[3] = DIGIT[j];
         strcat (columns, inRow);
         strcat (columns, "|");
 
-        inColumn[1] = '0' + i;
-        inColumn[3] = '0' + j;
+        inColumn[1] = DIGIT[i];
+        inColumn[3] = DIGIT[j];
         strcat (columns, inColumn);
         strcat (columns, "|");
 
-        inBox[1] = '0' + i;
-        inBox[3] = '0' + j;
+        inBox[1] = DIGIT[i];
+        inBox[3] = DIGIT[j];
         strcat (columns, inBox);
         strcat (columns, "|");
       }
@@ -2047,32 +2078,32 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
     // Initialize the lines of the matrix to be covered exactly.
     char line[strlen (inCell) + 1 + strlen (inRow) + 1 + strlen (inColumn) + 1 + strlen (inBox) + 1];
 
-    for (int row = 1; row <= 9; row++)
-      for (int column = 1; column <= 9; column++)
-        for (int number = 1; number <= 9; number++)
+    for (int row = 1; row <= GRID_SIZE; row++)
+      for (int column = 1; column <= GRID_SIZE; column++)
+        for (int number = 1; number <= GRID_SIZE; number++)
         {
-          cell[1] = '0' + row;
-          cell[3] = '0' + column;
-          cell[5] = '0' + number;
+          cell[1] = DIGIT[row];
+          cell[3] = DIGIT[column];
+          cell[5] = DIGIT[number];
 
           *line = 0;
-          inCell[1] = '0' + row;
-          inCell[3] = '0' + column;
+          inCell[1] = DIGIT[row];
+          inCell[3] = DIGIT[column];
           strcat (line, inCell);
           strcat (line, "|");
 
-          inRow[1] = '0' + row;
-          inRow[3] = '0' + number;
+          inRow[1] = DIGIT[row];
+          inRow[3] = DIGIT[number];
           strcat (line, inRow);
           strcat (line, "|");
 
-          inColumn[1] = '0' + column;
-          inColumn[3] = '0' + number;
+          inColumn[1] = DIGIT[column];
+          inColumn[3] = DIGIT[number];
           strcat (line, inColumn);
           strcat (line, "|");
 
-          inBox[1] = '0' + 3 * ((row - 1) / 3) + (column - 1) / 3 + 1;
-          inBox[3] = '0' + number;
+          inBox[1] = DIGIT[SQUARE_SIZE * ((row - 1) / SQUARE_SIZE) + (column - 1) / SQUARE_SIZE + 1];
+          inBox[3] = DIGIT[number];
           strcat (line, inBox);
 
           dlx_subset_define (sudoku, cell, line);
@@ -2080,13 +2111,13 @@ sudoku_solve (int g[9][9], method method, findSolutions find)
 
     // Initialize the already covered lines of the matrix to be covered exactly
     // using the initial sudoku grid (g).
-    for (int row = 1; row <= 9; row++)
-      for (int column = 1; column <= 9; column++)
+    for (int row = 1; row <= GRID_SIZE; row++)
+      for (int column = 1; column <= GRID_SIZE; column++)
         if (g[row - 1][column - 1])
         {
-          cell[1] = '0' + row;
-          cell[3] = '0' + column;
-          cell[5] = '0' + g[row - 1][column - 1];
+          cell[1] = DIGIT[row];
+          cell[3] = DIGIT[column];
+          cell[5] = DIGIT[g[row - 1][column - 1]];
           if (!dlx_subset_require_in_solution (sudoku, cell))
           {
             sudoku_on_message ((uintptr_t) sudoku, get_message_args (_("Grid is not valid.\n"), 0));

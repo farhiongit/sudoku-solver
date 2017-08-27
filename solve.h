@@ -41,11 +41,36 @@ typedef enum
   ON_SOLVED = 4
 } sudokuGridEventType;
 
+#ifndef SUDOKU_SIZE
+#define SUDOKU_SIZE (3)
+#endif
+
+#if SUDOKU_SIZE > 5
+#error SUDOKU_SIZE should not exceed 5
+#endif
+
+// compile-time integer constant expression
+enum
+{
+  SQUARE_SIZE = SUDOKU_SIZE,
+  GRID_SIZE = SQUARE_SIZE * SQUARE_SIZE,
+};
+
+typedef struct
+{
+  char *row_name;
+  char *column_name;
+  char *value_name;
+  char empty_code;
+} GridReferential;
+
+extern const GridReferential sudoku_grid_referential;
+
 /// Type definition for events
 typedef struct sudoku_grid_event_args
 {
-  int grid[9][9][9];            ///< Grid of 9 rows, 9 columns and 9 candidate values
-  int nbCells;                  ///< Number of cells for which the possible value has been found.
+  int grid[GRID_SIZE][GRID_SIZE][GRID_SIZE];    ///< Grid of 9 rows, 9 columns and 9 candidate values
+  int nbCells;                  ///< Number of non empty cells (for which the possible value has been found).
 } sudoku_grid_event_args;
 
 /// Type definition for callback functions called on events.
@@ -86,9 +111,9 @@ void sudoku_all_handlers_clear ();
 typedef enum
 {
   NONE,                         ///< None, when the grid can not be solved.
-  BACKTRACKING,                 ///< Brut force using backtracking
+  EXACT_COVER,                  ///< Exact cover search using dancing links algorithm (brut force)
   ELIMINATION,                  ///< Elimination (human behavior)
-  EXACT_COVER                   ///< Exact cover search using dancing links algorithm (brut force)
+  BACKTRACKING,                 ///< Brut force using backtracking
 } method;
 
 /// Option to search for the first or all of the possible solutions.
@@ -98,10 +123,12 @@ typedef enum
   ALL                           ///< All of the solutions
 } findSolutions;
 
+void sudoku_init (void);
+
 /// Solves the sudoku grid.
 /// @param [in] startGrid Grid to be solved
 /// @param [in] selected_method Method selected for solving the grid
 /// @param [in] option option to choose to search for the first (#FIRST) or all (#ALL) of the possible solutions
 /// @returns The method effectively used to solve the grid (promoted to #BACKTRACKING if needed).
-method sudoku_solve (int startGrid[9][9], method selected_method, findSolutions option);
+method sudoku_solve (int startGrid[GRID_SIZE][GRID_SIZE], method selected_method, findSolutions option);
 #endif

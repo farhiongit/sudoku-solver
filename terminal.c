@@ -48,13 +48,13 @@ static void
 grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
 {
   static int nbCells;
-  int ok[9][9];
+  int ok[GRID_SIZE][GRID_SIZE];
 
-  for (int l = 0; l < 9; l++)
-    for (int c = 0; c < 9; c++)
+  for (int l = 0; l < GRID_SIZE; l++)
+    for (int c = 0; c < GRID_SIZE; c++)
     {
       ok[l][c] = 0;
-      for (int v = 0; v < 9; v++)
+      for (int v = 0; v < GRID_SIZE; v++)
         if (evt_args.grid[l][c][v])
         {
           if (!ok[l][c])
@@ -71,54 +71,91 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
 
   if (sudokuDisplay == RULES)
     d = RULES;
-  else if (nbCells && (evt_args.nbCells != 81) && (sudokuDisplay & VERBOSE))
+  else if (nbCells && (evt_args.nbCells != GRID_SIZE * GRID_SIZE) && (sudokuDisplay & VERBOSE))
     d = VERBOSE;
-  else if (!nbCells || (evt_args.nbCells == 81) || ((sudokuDisplay & NORMAL) && (evt_args.nbCells != nbCells)))
+  else if (!nbCells || (evt_args.nbCells == GRID_SIZE * GRID_SIZE)
+           || ((sudokuDisplay & NORMAL) && (evt_args.nbCells != nbCells)))
     d = NORMAL;
 
   if (d == VERBOSE)
   {
     printf ("Grid #%u:\n", (unsigned int) id);
-    printf ("[%2i]  j   k   l   m   n   o   p   q   r \n", evt_args.nbCells);
-    for (int i = 0; i < 81 * 9; i++)
+    printf ("[%2i]", evt_args.nbCells);
+    for (int i = 0; i < GRID_SIZE; i++)
     {
-      int l = (i / 27) / 3;
-      int c = (i % 27) / 3;
-      int v = i % 3 + ((i / 27) % 3) * 3 + 1;
+      printf (" ");
+      for (int j = 0; j < (SQUARE_SIZE - 1) / 2; j++)
+        printf (" ");
+      printf ("%c", sudoku_grid_referential.column_name[i]);
+      for (int j = 0; j < (SQUARE_SIZE - 1) / 2; j++)
+        printf (" ");
+    }
+    printf ("\n");
+    for (int i = 0; i < GRID_SIZE * GRID_SIZE * GRID_SIZE; i++)
+    {
+      int l = (i / (GRID_SIZE * SQUARE_SIZE)) / SQUARE_SIZE;
+      int c = (i % (GRID_SIZE * SQUARE_SIZE)) / SQUARE_SIZE;
+      int v = i % SQUARE_SIZE + ((i / (GRID_SIZE * SQUARE_SIZE)) % SQUARE_SIZE) * SQUARE_SIZE + 1;
 
-      if (i % (27 * 3 * 3) == 0)
-        printf ("    +---+---+---+---+---+---+---+---+---+\n");
-      else if (i % (27 * 3) == 0)
-        printf ("    +...+...+...+...+...+...+...+...+...+\n");
+      if (i % (GRID_SIZE * SQUARE_SIZE * SQUARE_SIZE * SQUARE_SIZE) == 0)
+      {
+        printf ("    +");
+        for (int i = 0; i < GRID_SIZE; i++)
+        {
+          for (int j = 0; j < SQUARE_SIZE; j++)
+            printf ("-");
+          printf ("+");
+        }
+        printf ("\n");
+      }
+      else if (i % (GRID_SIZE * SQUARE_SIZE * SQUARE_SIZE) == 0)
+      {
+        printf ("    +");
+        for (int i = 0; i < GRID_SIZE; i++)
+        {
+          for (int j = 0; j < SQUARE_SIZE; j++)
+            printf (".");
+          printf ("+");
+        }
+        printf ("\n");
+      }
 
-      if ((i + 2 * 27) % (3 * 3 * 3 * 3) == 0)
-        printf ("  %c |", 'A' + i / 81);
-      else if (i % (3 * 3 * 3) == 0)
+      if ((i + (SQUARE_SIZE - 1) * GRID_SIZE * SQUARE_SIZE) % (SQUARE_SIZE * SQUARE_SIZE * SQUARE_SIZE * SQUARE_SIZE) ==
+          0)
+        printf ("  %c |", sudoku_grid_referential.row_name[i / (GRID_SIZE * GRID_SIZE)]);
+      else if (i % (SQUARE_SIZE * SQUARE_SIZE * SQUARE_SIZE) == 0)
         printf ("    |");
 
-      if (!ok[l][c])
+      if (!ok[l][c])            // Display all candidates
       {
         if (evt_args.grid[l][c][v - 1])
-          printf ("%i", evt_args.grid[l][c][v - 1]);
+          printf ("%c", sudoku_grid_referential.value_name[evt_args.grid[l][c][v - 1] - 1]);
         else
           printf (" ");
       }
-      else
+      else                      // Display one single candidate
       {
-        if (v == 5)
-          printf ("%i", ok[l][c]);
+        if (v == (GRID_SIZE + 1) / 2)
+          printf ("%c", sudoku_grid_referential.value_name[ok[l][c] - 1]);
         else
           printf (" ");
       }
 
-      if ((i + 1) % (9 * 3) == 0)
+      if ((i + 1) % (GRID_SIZE * SQUARE_SIZE) == 0)
         printf ("|\n");
-      else if ((i + 1) % (3 * 3) == 0)
+      else if ((i + 1) % (SQUARE_SIZE * SQUARE_SIZE) == 0)
         printf ("|");
-      else if ((i + 1) % 3 == 0)
+      else if ((i + 1) % SQUARE_SIZE == 0)
         printf (":");
     }
-    printf ("    +---+---+---+---+---+---+---+---+---+\n");
+    printf ("    +");
+    for (int i = 0; i < GRID_SIZE; i++)
+    {
+      for (int j = 0; j < SQUARE_SIZE; j++)
+        printf ("-");
+      printf ("+");
+    }
+    printf ("\n");
     printf ("\n");
     askAgain = 1;
   }
@@ -126,17 +163,29 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
   {
     nbCells = evt_args.nbCells;
     printf ("Grid #%u:\n", (unsigned int) id);
-    printf ("[%2i] j k l m n o p q r\n", evt_args.nbCells);
-    for (int l = 0; l < 9; l++)
+    printf ("[%2i]", evt_args.nbCells);
+    for (int i = 0; i < GRID_SIZE; i++)
+      printf (" %c", sudoku_grid_referential.column_name[i]);
+    printf ("\n");
+    for (int l = 0; l < GRID_SIZE; l++)
     {
-      if (l % 3 == 0)
-        printf ("    +-----+-----+-----+\n");
-      printf ("  %c |", 'A' + l);
-      for (int c = 1; c <= 9; c++)
+      if (l % SQUARE_SIZE == 0)
+      {
+        printf ("    +");
+        for (int i = 0; i < SQUARE_SIZE; i++)
+        {
+          for (int j = 0; j < 2 * SQUARE_SIZE - 1; j++)
+            printf ("-");
+          printf ("+");
+        }
+        printf ("\n");
+      }
+      printf ("  %c |", sudoku_grid_referential.row_name[l]);
+      for (int c = 1; c <= GRID_SIZE; c++)
       {
         int val = 0;
 
-        for (int v = 1; v <= 9; v++)
+        for (int v = 1; v <= GRID_SIZE; v++)
         {
           if (evt_args.grid[l][c - 1][v - 1])
           {
@@ -150,17 +199,24 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
           }
         }
         if (val)
-          printf ("%i", val);
+          printf ("%c", sudoku_grid_referential.value_name[val - 1]);
         else
           printf (".");
-        if (c % 3 == 0)
+        if (c % SQUARE_SIZE == 0)
           printf ("|");
         else
           printf (" ");
       }
       printf ("\n");
     }
-    printf ("    +-----+-----+-----+\n");
+    printf ("    +");
+    for (int i = 0; i < SQUARE_SIZE; i++)
+    {
+      for (int j = 0; j < 2 * SQUARE_SIZE - 1; j++)
+        printf ("-");
+      printf ("+");
+    }
+    printf ("\n");
     printf ("\n");
     askAgain = 1;
   }
@@ -168,13 +224,13 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
   {
     nbCells = evt_args.nbCells;
     printf ("Grid #%u: [%2i] ", (unsigned int) id, evt_args.nbCells);
-    for (int l = 0; l < 9; l++)
+    for (int l = 0; l < GRID_SIZE; l++)
     {
-      for (int c = 0; c < 9; c++)
+      for (int c = 0; c < GRID_SIZE; c++)
       {
         int val = 0;
 
-        for (int v = 1; v <= 9; v++)
+        for (int v = 1; v <= GRID_SIZE; v++)
         {
           if (evt_args.grid[l][c][v - 1])
           {
@@ -187,7 +243,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
               val = evt_args.grid[l][c][v - 1];
           }
         }
-        printf ("%i", val);
+        printf ("%c", val ? sudoku_grid_referential.value_name[val - 1] : '.');
       }
     }
     printf ("\n");

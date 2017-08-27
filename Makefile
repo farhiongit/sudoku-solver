@@ -50,10 +50,11 @@ po/en_US.po: po/SUDOKU_SOLVER.pot
 	(cd po ; msginit --no-wrap --no-translator -len_US.utf8 || msgmerge --verbose -U en_US.po SUDOKU_SOLVER.pot ; touch en_US.po)
 
 $(EXE): $(OBJS) ../knuth_dancing_links/libdlx.a
-	$(CC) $(CFLAGS) $(LD_OPT) -o $@ $(OBJS) -L"$(LIBPATH)" -ldlx
+	$(CC) $(CFLAGS) $(LD_OPT) -o $@ $(OBJS) ../knuth_dancing_links/libdlx.a  #-L"$(LIBPATH)" -ldlx
 
-terminal.o: terminal.c terminal.h
-$(SOLVE_C:.c=.o): $(SOLVE_C) $(SOLVE_H)
+terminal.o: terminal.c terminal.h $(SOLVE_H)
+$(SOLVE_C:.c=.o): $(SOLVE_C) $(SOLVE_H) ../knuth_dancing_links/dancing_links.h finally.h
+main.o: main.c $(SOLVE_H) terminal.h
 $(OBJS) : Makefile
 
 $(LIB): $(SOLVE_C:.c=.o)

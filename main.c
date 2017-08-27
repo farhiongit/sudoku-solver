@@ -39,6 +39,7 @@
 #include <locale.h>
 #include <unistd.h>
 #include <time.h>
+#include <string.h>
 
 #include "solve.h"
 #include "terminal.h"
@@ -84,9 +85,9 @@ getdigit (const char *initString)
     }
 
     if (c == '.')
-      c = '0';
+      c = sudoku_grid_referential.empty_code;
 
-    if (isdigit (c) || (c == EOF))
+    if (strchr (sudoku_grid_referential.value_name, c) || c == sudoku_grid_referential.empty_code || c == EOF)
       return (c);
   }
   while (1);
@@ -99,6 +100,8 @@ getdigit (const char *initString)
 int
 main (int argc, char *argv[])
 {
+  sudoku_init ();
+
   const char *TEST_GRID[] = {
     "8........" "..36....." ".7..9.2.." ".5...7..." "....457.." "...1...3." "..1....68" "..85...1." ".9....4..",
     "000000010" "400000000" "020000000" "000050604" "008000300" "001090000" "300400200" "050100000" "000807000",
@@ -138,9 +141,11 @@ main (int argc, char *argv[])
       printf ("\nVersion:\n  %s\n", sudoku_get_version ());
       printf ("\nUsage:\n  %s [-vhABigcrq] [-T n] [grid]\n", basename (argv[0]));
       printf ("\nArgument:\n");
-      printf ("    'grid' is the sequence of the 81 characters (9x9 cells) of the sudoku grid :\n");
+      printf ("    'grid' is the sequence of the %1$i characters (%2$ix%3$i cells) of the sudoku grid :\n",
+              GRID_SIZE * GRID_SIZE, GRID_SIZE, GRID_SIZE);
       printf
-        ("      1 to 9, 0 or . for an empty cell, other characters (including space and end-of-line) are ignored.\n");
+        ("      %1$s, %2$c or . for an empty cell, other characters (including space and end-of-line) are ignored.\n",
+         sudoku_grid_referential.value_name, sudoku_grid_referential.empty_code);
       printf ("      For example:\n\n%s\n", TEST_GRID[0]);
       printf ("      \nor\n\n7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n\n");
       printf ("    If the argument 'grid' is omitted or is '-', it is read from the standard input.\n");
@@ -217,7 +222,7 @@ main (int argc, char *argv[])
   }
 
   // Grid initialization
-  int initGrid[9][9];
+  int initGrid[GRID_SIZE][GRID_SIZE];
 
   const char *initString = 0;
 
@@ -242,24 +247,23 @@ main (int argc, char *argv[])
   if (!initString)
   {
     printf
-      ("Type in the 81 cells (1 to 9, 0 or . for an empty cell, other characters, including space and end-of-line, ignored) and end with Control-D.\n");
+      ("Type in the %1$i cells (%2$s, %3$c or . for an empty cell, other characters, including space and end-of-line, ignored) and end with Control-D.\n",
+       GRID_SIZE * GRID_SIZE, sudoku_grid_referential.value_name, sudoku_grid_referential.empty_code);
     printf ("(Use option -h for usage information.)\n");
   }
 
   int i = 0, c;
-  const int digits[10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-  for (i = 0; i < 81 && ((c = getdigit (initString)) != EOF); i++)
-  {
-    int j;
 
-    for (j = 9; j >= 0 && (c != digits[j]); j--)
-      /* nothing */ ;
-    initGrid[i / 9][i % 9] = j;
-  }
+  for (i = 0; i < GRID_SIZE * GRID_SIZE && ((c = getdigit (initString)) != EOF); i++)
+    initGrid[i / GRID_SIZE][i % GRID_SIZE] =
+      (c ==
+       sudoku_grid_referential.empty_code ? 0 : (strchr (sudoku_grid_referential.value_name, c) -
+                                                 sudoku_grid_referential.value_name + 1));
 
-  if (i < 81)
+  if (i < GRID_SIZE * GRID_SIZE)
   {
-    fprintf (stderr, "Incomplete grid (%i values provided for initialization, 81 values needed.)\n", i);
+    fprintf (stderr, "Incomplete grid (%1$i values provided for initialization, %2$i values needed.)\n", i,
+             GRID_SIZE * GRID_SIZE);
     exit (-1);
   }
 
@@ -281,8 +285,12 @@ main (int argc, char *argv[])
     terminal_set (iflag);
 
     printf ("Grid is: ");
-    for (i = 0; i < 81; i++)
-      printf ("%c", initGrid[i / 9][i % 9] ? digits[initGrid[i / 9][i % 9]] : '.');
+    for (i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+      printf ("%c",
+              initGrid[i / GRID_SIZE][i %
+                                      GRID_SIZE] ? sudoku_grid_referential.value_name[initGrid[i / GRID_SIZE][i %
+                                                                                                              GRID_SIZE]
+                                                                                      - 1] : '.');
     printf ("\n");
   }
 
