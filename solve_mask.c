@@ -1,4 +1,3 @@
-
 /**
  * @file
  * Implements algorithms to solve sudoku puzzles.
@@ -1890,8 +1889,8 @@ exact_cover_search_solution_displayer (Univers head, unsigned long length, const
   int g[GRID_SIZE][GRID_SIZE];
 
   for (unsigned long i = 0; i < length; i++)
-    if (solution[i] && isdigit (solution[i][1]) && isdigit (solution[i][3]) && isdigit (solution[i][5]))
-      g[solution[i][1] - '0' - 1][solution[i][3] - '0' - 1] = solution[i][5] - '0';
+    if (solution[i] && strchr (DIGIT, solution[i][1]) && strchr (DIGIT, solution[i][3]) && strchr (DIGIT, solution[i][5]))
+      g[strchr (DIGIT, solution[i][1]) - DIGIT][strchr (DIGIT, solution[i][3]) - DIGIT] = strchr (DIGIT, solution[i][5]) - DIGIT + 1;
 
   sudoku_on_solved ((uintptr_t) head, int9x9_print (g));
 }
@@ -2046,23 +2045,23 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
     for (int i = 1; i <= GRID_SIZE; i++)
       for (int j = 1; j <= GRID_SIZE; j++)
       {
-        inCell[1] = DIGIT[i];
-        inCell[3] = DIGIT[j];
+        inCell[1] = DIGIT[i - 1];
+        inCell[3] = DIGIT[j - 1];
         strcat (columns, inCell);
         strcat (columns, "|");
 
-        inRow[1] = DIGIT[i];
-        inRow[3] = DIGIT[j];
+        inRow[1] = DIGIT[i - 1];
+        inRow[3] = DIGIT[j - 1];
         strcat (columns, inRow);
         strcat (columns, "|");
 
-        inColumn[1] = DIGIT[i];
-        inColumn[3] = DIGIT[j];
+        inColumn[1] = DIGIT[i - 1];
+        inColumn[3] = DIGIT[j - 1];
         strcat (columns, inColumn);
         strcat (columns, "|");
 
-        inBox[1] = DIGIT[i];
-        inBox[3] = DIGIT[j];
+        inBox[1] = DIGIT[i - 1];
+        inBox[3] = DIGIT[j - 1];
         strcat (columns, inBox);
         strcat (columns, "|");
       }
@@ -2082,28 +2081,28 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
       for (int column = 1; column <= GRID_SIZE; column++)
         for (int number = 1; number <= GRID_SIZE; number++)
         {
-          cell[1] = DIGIT[row];
-          cell[3] = DIGIT[column];
-          cell[5] = DIGIT[number];
+          cell[1] = DIGIT[row - 1];
+          cell[3] = DIGIT[column - 1];
+          cell[5] = DIGIT[number - 1];
 
           *line = 0;
-          inCell[1] = DIGIT[row];
-          inCell[3] = DIGIT[column];
+          inCell[1] = DIGIT[row - 1];
+          inCell[3] = DIGIT[column - 1];
           strcat (line, inCell);
           strcat (line, "|");
 
-          inRow[1] = DIGIT[row];
-          inRow[3] = DIGIT[number];
+          inRow[1] = DIGIT[row - 1];
+          inRow[3] = DIGIT[number - 1];
           strcat (line, inRow);
           strcat (line, "|");
 
-          inColumn[1] = DIGIT[column];
-          inColumn[3] = DIGIT[number];
+          inColumn[1] = DIGIT[column - 1];
+          inColumn[3] = DIGIT[number - 1];
           strcat (line, inColumn);
           strcat (line, "|");
 
-          inBox[1] = DIGIT[SQUARE_SIZE * ((row - 1) / SQUARE_SIZE) + (column - 1) / SQUARE_SIZE + 1];
-          inBox[3] = DIGIT[number];
+          inBox[1] = DIGIT[SQUARE_SIZE * ((row - 1) / SQUARE_SIZE) + (column - 1) / SQUARE_SIZE];
+          inBox[3] = DIGIT[number - 1];
           strcat (line, inBox);
 
           dlx_subset_define (sudoku, cell, line);
@@ -2115,9 +2114,9 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
       for (int column = 1; column <= GRID_SIZE; column++)
         if (g[row - 1][column - 1])
         {
-          cell[1] = DIGIT[row];
-          cell[3] = DIGIT[column];
-          cell[5] = DIGIT[g[row - 1][column - 1]];
+          cell[1] = DIGIT[row - 1];
+          cell[3] = DIGIT[column - 1];
+          cell[5] = DIGIT[g[row - 1][column - 1] - 1];
           if (!dlx_subset_require_in_solution (sudoku, cell))
           {
             sudoku_on_message ((uintptr_t) sudoku, get_message_args (_("Grid is not valid.\n"), 0));

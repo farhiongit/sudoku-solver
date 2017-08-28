@@ -1,7 +1,8 @@
 CC				= clang -std=c11
 WARNINGS	= -Wall -pedantic-errors -Werror
 #For debuging, use DEBUG instead of COMPILE
-COMPILE		= -pipe -O3 -DSUDOKU_SIZE=3
+SUDOKU_SIZE     = 3
+COMPILE		= -pipe -O3 -DSUDOKU_SIZE=$(SUDOKU_SIZE)
 #DEBUG			= -g -pg
 #For profiling, use DEBUG option instead of COMPILE, run executable, then "gprof ./solveSudoku gmon.out"
 #PROC_OPT        = -march=i686
@@ -52,9 +53,9 @@ po/en_US.po: po/SUDOKU_SOLVER.pot
 $(EXE): $(OBJS) ../knuth_dancing_links/libdlx.a
 	$(CC) $(CFLAGS) $(LD_OPT) -o $@ $(OBJS) ../knuth_dancing_links/libdlx.a  #-L"$(LIBPATH)" -ldlx
 
-terminal.o: terminal.c terminal.h $(SOLVE_H)
-$(SOLVE_C:.c=.o): $(SOLVE_C) $(SOLVE_H) ../knuth_dancing_links/dancing_links.h finally.h
-main.o: main.c $(SOLVE_H) terminal.h
+terminal.o: terminal.c terminal.h $(SOLVE_H) Makefile
+$(SOLVE_C:.c=.o): $(SOLVE_C) $(SOLVE_H) ../knuth_dancing_links/dancing_links.h finally.h Makefile
+main.o: main.c $(SOLVE_H) terminal.h Makefile
 $(OBJS) : Makefile
 
 $(LIB): $(SOLVE_C:.c=.o)

@@ -191,7 +191,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
           {
             if (val)
             {
-              v = 10;
+              v = GRID_SIZE;
               val = 0;
             }
             else
@@ -236,7 +236,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
           {
             if (val)
             {
-              v = 10;
+              v = GRID_SIZE;
               val = 0;
             }
             else

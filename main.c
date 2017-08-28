@@ -152,9 +152,13 @@ main (int argc, char *argv[])
       printf
         ("      %1$s, %2$c or . for an empty cell, other characters (including space and end-of-line) are ignored.\n",
          sudoku_grid_referential.value_name, sudoku_grid_referential.empty_code);
-      printf ("      For example:\n\n%s\n", TEST_GRID[0]);
+      printf ("      For example:\n\n");
+      if (strlen (TEST_GRID[0]))
+        printf ("        %s\n", TEST_GRID[0]);
 #if SUDOKU_SIZE == 3
-      printf ("\n      or\n\n7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n");
+      if (strlen (TEST_GRID[0]))
+        printf ("\n      or");
+      printf ("\n\n        7...85....81.......43....59......3.12..4..7...3...7.9..15..........5.2.3....98...\n");
 #endif
       printf ("\n    If the argument 'grid' is omitted or is '-', it is read from the standard input.\n");
       printf ("\nOptions:\n");
