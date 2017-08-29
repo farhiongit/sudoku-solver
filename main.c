@@ -87,7 +87,14 @@ getdigit (const char *initString)
     if (c == '.')
       c = sudoku_grid_referential.empty_code;
 
-    if (strchr (sudoku_grid_referential.value_name, c) || c == sudoku_grid_referential.empty_code || c == EOF)
+    char *pc;
+
+    if ((pc = strchr (sudoku_grid_referential.value_name, toupper (c))) ||
+        (pc = strchr (sudoku_grid_referential.value_name, tolower (c))))
+      return (*pc);
+    else if (tolower (c) == tolower (sudoku_grid_referential.empty_code))
+      return (sudoku_grid_referential.empty_code);
+    else if (c == EOF)
       return (c);
   }
   while (1);
@@ -115,6 +122,8 @@ main (int argc, char *argv[])
     "76.5..2.." "1.2.4..78" "..4..851." ".....3..." "..71.2..." "9...876.." "..6....3." ".1.7..8.." ".43..9...",        // BestWestern Ypsilon Essen (fake sudoku)
 #elif SUDOKU_SIZE == 2
     "1234 4.2. .4.. 2..3",
+#elif SUDOKU_SIZE == 4
+    "..f65ge7b.1..83..b..d.6.......ef8.......95.e4..7e..1.....f2..6..g6....da..fb.c..f....4951..28..e24..713.....9g..3...e6.g..a..d.4a.8..5..f.3c...6..4b.....ad6..8g6..53..e298....1..9.6d..e4....c2..a..e1.....3..84..39.8d.......5d8.......e.7..f..9g..a.2584361..",
 #else
     "",
 #endif

@@ -1,3 +1,4 @@
+
 /**
  * @file
  * Implements algorithms to solve sudoku puzzles.
@@ -188,7 +189,7 @@
 #define SUDOKU_SOLVE_VERSION "2.1"
 
 /// Maximum length of messages to be displayed.
-#define SUDOKU_MAX_MESSAGE_LENGTH 1001
+#define SUDOKU_MAX_MESSAGE_LENGTH 10001
 
 /// Append text to the end of a string.
 /// @param [in] str String to be appended.
@@ -1889,8 +1890,10 @@ exact_cover_search_solution_displayer (Univers head, unsigned long length, const
   int g[GRID_SIZE][GRID_SIZE];
 
   for (unsigned long i = 0; i < length; i++)
-    if (solution[i] && strchr (DIGIT, solution[i][1]) && strchr (DIGIT, solution[i][3]) && strchr (DIGIT, solution[i][5]))
-      g[strchr (DIGIT, solution[i][1]) - DIGIT][strchr (DIGIT, solution[i][3]) - DIGIT] = strchr (DIGIT, solution[i][5]) - DIGIT + 1;
+    if (solution[i] && strchr (DIGIT, solution[i][1]) && strchr (DIGIT, solution[i][3])
+        && strchr (DIGIT, solution[i][5]))
+      g[strchr (DIGIT, solution[i][1]) - DIGIT][strchr (DIGIT, solution[i][3]) - DIGIT] =
+        strchr (DIGIT, solution[i][5]) - DIGIT + 1;
 
   sudoku_on_solved ((uintptr_t) head, int9x9_print (g));
 }

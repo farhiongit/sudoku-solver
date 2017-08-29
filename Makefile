@@ -15,7 +15,7 @@ SOLVE_H = solve.h
 SRCS    = $(SOLVE_C) terminal.c main.c
 HEADERS = $(SOLVE_H) terminal.h
 OBJS    = $(SRCS:.c=.o)
-EXE     = solveSudoku
+EXE     = solveSudoku$(SUDOKU_SIZE)
 
 # Static library, linked with -L. -lsolve if needed
 LIB     = libsolve.a
@@ -70,4 +70,3 @@ clean:
 sudoku.pdf: $(SRCS) $(HEADERS)
 	doxygen sudoku.doxygen > /dev/null
 	(cd sudoku.doc/latex ; make > /dev/null ; mv refman.pdf ../../sudoku.pdf ; cd -)
-

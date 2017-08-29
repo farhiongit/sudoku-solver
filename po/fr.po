@@ -9,22 +9,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: solve_mask.c:251 solve_mask.c:397 solve_mask.c:1913
+#: solve_mask.c:252 solve_mask.c:398 solve_mask.c:1916
 #, c-format
 msgid "Memory allocation error (%s, %s, %i)\n"
 msgstr "Erreur d'allocation mémpire (%s, %s, %i)\n"
 
-#: solve_mask.c:666
+#: solve_mask.c:667
 #, c-format
 msgid "%s: the values (%s) can only lie in %s.\n"
 msgstr "%s : les valeurs (%s) ne peuvent apparaitre que dans %s.\n"
 
-#: solve_mask.c:670
+#: solve_mask.c:671
 #, c-format
 msgid "%s: the value (%s) can only lie in %s.\n"
 msgstr "%s : la valeur (%s) ne peut apparaitre que dans %s.\n"
 
-#: solve_mask.c:822
+#: solve_mask.c:823
 #, c-format
 msgid ""
 "Value %i in each one of the %i rows [%s] lie only in one of the columns "
@@ -37,7 +37,7 @@ msgstr ""
 "-> La valeur %i des %i colonnes [%s] ne peut apparaitre que dans l'une des "
 "lignes [%s].\n"
 
-#: solve_mask.c:829
+#: solve_mask.c:830
 #, c-format
 msgid ""
 "Value %i in row [%s] lies only in column [%s].\n"
@@ -47,7 +47,7 @@ msgstr ""
 "-> La valeur %i de la colonne [%s] ne peut apparaitre que dans la ligne "
 "[%s].\n"
 
-#: solve_mask.c:938
+#: solve_mask.c:939
 #, c-format
 msgid ""
 "Value %i in each one of the %i columns [%s] lie only in one of the rows "
@@ -60,7 +60,7 @@ msgstr ""
 "-> La valeur %i des %i lignes [%s] ne peut apparaitre que dans l'une des "
 "colonnes [%s].\n"
 
-#: solve_mask.c:945
+#: solve_mask.c:946
 #, c-format
 msgid ""
 "Value %i in column [%s] lies only in row [%s].\n"
@@ -70,7 +70,7 @@ msgstr ""
 "-> La valeur %i de la ligne [%s] ne peut apparaitre que dans la colonne "
 "[%s].\n"
 
-#: solve_mask.c:1057
+#: solve_mask.c:1058
 #, c-format
 msgid ""
 "%s: each one of the %i cells [%s] can only accept one of the %i values "
@@ -81,7 +81,7 @@ msgstr ""
 "%s : chacune des %i cases [%s] ne peut accepter que les %i valeurs (%s).\n"
 "-> %s : les %i valeurs (%s) ne peuvent apparaitre que les %i cases [%s].\n"
 
-#: solve_mask.c:1064
+#: solve_mask.c:1065
 #, c-format
 msgid ""
 "%s: the cell [%s] can only accept the value (%s).\n"
@@ -90,7 +90,7 @@ msgstr ""
 "%s : la case [%s] ne peut accepter que dans la valeur (%s).\n"
 "-> %s : la valeur (%s) ne peut apparaitre que la case [%s].\n"
 
-#: solve_mask.c:1151
+#: solve_mask.c:1152
 #, c-format
 msgid ""
 "%s: each one of the %i values (%s) can only lie in one of the %i cells "
@@ -101,7 +101,7 @@ msgstr ""
 "%s : chacune des %i valeurs (%s) ne peut apparaitre que les %i cases [%s].\n"
 "-> %s : les %i cases [%s] ne peuvent accepter que les %i valeurs (%s).\n"
 
-#: solve_mask.c:1158
+#: solve_mask.c:1159
 #, c-format
 msgid ""
 "%s: the value (%s) can only lie in the cell [%s].\n"
@@ -110,7 +110,7 @@ msgstr ""
 "%s : la valeur (%s) ne peut apparaitre que dans la case [%s].\n"
 "-> %s : la case [%s] ne peut accepter que la valeur (%s).\n"
 
-#: solve_mask.c:1331
+#: solve_mask.c:1332
 #, c-format
 msgid ""
 "\n"
@@ -121,120 +121,120 @@ msgstr ""
 "  ### La case %s ne peut contenir que la valeur %c [%2i] ###\n"
 "\n"
 
-#: solve_mask.c:1409 solve_mask.c:1630
+#: solve_mask.c:1410 solve_mask.c:1631
 #, c-format
 msgid "Unexpected error (%s, %s, %i).\n"
 msgstr "Erreur inattendue (%s, %s, %i).\n"
 
-#: solve_mask.c:1444 solve_mask.c:1485
+#: solve_mask.c:1445 solve_mask.c:1486
 msgid "  => Invalid grid.\n"
 msgstr "  => Grille invalide.\n"
 
-#: solve_mask.c:1606
+#: solve_mask.c:1607
 #, c-format
 msgid "  ??? Hypothesis: cell %s = %c ? (out of %s) [%2i] ???\n"
 msgstr ""
 "  ??? Devinette : case %s = %c ? (parmi %s choix possibles) [%2i] ???\n"
 
-#: solve_mask.c:1641
+#: solve_mask.c:1642
 #, c-format
 msgid "  %%%%%% Incorrect guess: cell %s = %c [%2i] (after %i steps). %%%%%%\n"
 msgstr ""
 "  %%%%%% Supposition incorrecte: case %s = %c [%2i] (après %i étapes). %%%%"
 "%%\n"
 
-#: solve_mask.c:1656
+#: solve_mask.c:1657
 #, c-format
 msgid "Solved using elimination method (solution #%i).\n"
 msgstr "Résolu par déductions (solution #%i).\n"
 
-#: solve_mask.c:1792
+#: solve_mask.c:1793
 #, c-format
 msgid "Solved using backtracking method (solution #%i, %i tries).\n"
 msgstr "Résolu par la force brute (solution #%i, %i essais).\n"
 
-#: solve_mask.c:1825
+#: solve_mask.c:1826
 #, c-format
 msgid "Row %c"
 msgstr "Ligne %c"
 
-#: solve_mask.c:1828
+#: solve_mask.c:1829
 #, c-format
 msgid "Column %c"
 msgstr "Colonne %c"
 
-#: solve_mask.c:1831
+#: solve_mask.c:1832
 #, c-format
 msgid "Square %c%c-%c%c"
 msgstr "Carré %c%c-%c%c"
 
-#: solve_mask.c:1847 solve_mask.c:1852
+#: solve_mask.c:1848 solve_mask.c:1853
 #, c-format
 msgid "Segment %c%c-%c%c"
 msgstr "Zone %c%c-%c%c"
 
-#: solve_mask.c:1885 solve_mask.c:1934 solve_mask.c:1973 solve_mask.c:2023
-#: solve_mask.c:2122
+#: solve_mask.c:1886 solve_mask.c:1937 solve_mask.c:1976 solve_mask.c:2026
+#: solve_mask.c:2125
 msgid "Grid is not valid.\n"
 msgstr "La grille n'est pas valide.\n"
 
-#: solve_mask.c:1985 solve_mask.c:2131
+#: solve_mask.c:1988 solve_mask.c:2134
 #, c-format
 msgid "%i solution found.\n"
 msgid_plural "%i solutions found.\n"
 msgstr[0] "%i solution a été trouvée.\n"
 msgstr[1] "%i solutions ont été trouvées.\n"
 
-#: solve_mask.c:1987
+#: solve_mask.c:1990
 #, c-format
 msgid "Solved with %i rules and %i hypothesis.\n"
 msgstr "Résolu par %i règles et %i devinettes.\n"
 
-#: solve_mask.c:1989
+#: solve_mask.c:1992
 msgid "Cell Exclusion:\n"
 msgstr "Cases exclues :\n"
 
-#: solve_mask.c:1992 solve_mask.c:1996 solve_mask.c:2000
+#: solve_mask.c:1995 solve_mask.c:1999 solve_mask.c:2003
 #, c-format
 msgid "\tDepth %i: %i\n"
 msgstr "\tProfondeur %i: %i\n"
 
-#: solve_mask.c:1993
+#: solve_mask.c:1996
 msgid "Candidate Exclusion:\n"
 msgstr "Candidats exclus :\n"
 
-#: solve_mask.c:1997
+#: solve_mask.c:2000
 msgid "Value Exclusion:\n"
 msgstr "Valeurs exclues :\n"
 
-#: solve_mask.c:2001
+#: solve_mask.c:2004
 msgid "Regions Exclusion:\n"
 msgstr "Régions exclues :\n"
 
-#: solve_mask.c:2002
+#: solve_mask.c:2005
 #, c-format
 msgid "\t%i\n"
 msgstr "\t%i\n"
 
-#: solve_mask.c:2003
+#: solve_mask.c:2006
 msgid "Backtracking:\n"
 msgstr "Force brute :\n"
 
-#: solve_mask.c:2004
+#: solve_mask.c:2007
 #, c-format
 msgid "\tDepth: %i\n"
 msgstr "\tProfondeur : %i\n"
 
-#: solve_mask.c:2005
+#: solve_mask.c:2008
 #, c-format
 msgid "\tSteps: %i\n"
 msgstr "\tEtape : %i\n"
 
-#: solve_mask.c:2006
+#: solve_mask.c:2009
 #, c-format
 msgid "\tHypothesis: %i\n"
 msgstr "\tDevinette : %i\n"
 
-#: solve_mask.c:2132
+#: solve_mask.c:2135
 msgid "Solved using exact cover search method.\n"
 msgstr "Résolu par la méthode de recherche de couverture exact.\n"
