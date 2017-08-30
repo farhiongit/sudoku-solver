@@ -47,6 +47,8 @@ typedef enum
 
 #if SUDOKU_SIZE > 5
 #error SUDOKU_SIZE should not exceed 5
+#elif SUDOKU_SIZE < 2
+#error SUDOKU_SIZE should exceed 1
 #endif
 
 // compile-time integer constant expression

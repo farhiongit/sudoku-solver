@@ -135,7 +135,7 @@ grid_print (uintptr_t id, sudoku_grid_event_args evt_args)
       }
       else                      // Display one single candidate
       {
-        if (v == (GRID_SIZE + 1) / 2)
+        if (v == (GRID_SIZE + 1) / 2 - (GRID_SIZE % 2 ? 0 : SQUARE_SIZE / 2))
           printf ("%c", sudoku_grid_referential.value_name[ok[l][c] - 1]);
         else
           printf (" ");
