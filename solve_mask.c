@@ -2,7 +2,7 @@
 /**
  * @file
  * Implements algorithms to solve sudoku puzzles.
- * 
+ *
  * This program is a Sudoku solver.
  * It proceeds with 4 logicals rules
  *     - cell exclusion

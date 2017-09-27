@@ -154,7 +154,7 @@ main (int argc, char *argv[])
       printf ("Name:\n  %s\n", basename (argv[0]));
       printf ("\nDescription:\n  Sudoku Solver using logical rules for elimination of candidates.\n");
       printf ("\nVersion:\n  %s\n", sudoku_get_version ());
-      printf ("\nUsage:\n  %s [-vhABigcrq] [-T n] [grid]\n", basename (argv[0]));
+      printf ("\nUsage:\n  %s [-vh] [-fBE] [-igcrq] [-T n] [grid]\n", basename (argv[0]));
       printf ("\nArgument:\n");
       printf ("    'grid' is the sequence of the %1$i characters (%2$ix%3$i cells) of the sudoku grid :\n",
               GRID_SIZE * GRID_SIZE, GRID_SIZE, GRID_SIZE);

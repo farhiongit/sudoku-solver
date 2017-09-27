@@ -10,7 +10,6 @@ LD_OPT		= -s
 CFLAGS  = $(DEBUG) $(WARNINGS) $(COMPILE) $(PROC_OPT) -DSUDOKU_SIZE=$(SUDOKU_SIZE)
 
 SOLVE_C = solve_mask.c
-#SOLVE_C = solve_list.c
 SOLVE_H = solve.h
 SRCS    = $(SOLVE_C) terminal.c main.c
 HEADERS = $(SOLVE_H) terminal.h
