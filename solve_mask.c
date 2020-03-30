@@ -1879,7 +1879,7 @@ sudoku_init (void)
 /// Displayer function to be used by the exqct cover serach library libdlx.a.
 /// @see [dancing links library](https://github.com/farhiongit/dancing-links).
 static void
-exact_cover_search_solution_displayer (Univers head, unsigned long length, const char *const *solution, void *ptr)
+exact_cover_search_solution_displayer (Universe head, unsigned long length, const char *const *solution, void *ptr)
 {
   if (!length || !solution)
   {
@@ -2070,7 +2070,7 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
       }
 
     // Initialize a matrix to be covered exactly.
-    Univers sudoku = dlx_univers_create (columns);
+    Universe sudoku = dlx_universe_create (columns, "|");
 
     dlx_displayer_set (sudoku, exact_cover_search_solution_displayer, 0);
     //(void) (exact_cover_search_solution_displayer);
@@ -2108,7 +2108,7 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
           inBox[3] = DIGIT[number - 1];
           strcat (line, inBox);
 
-          dlx_subset_define (sudoku, cell, line);
+          dlx_subset_define (sudoku, cell, line, "|");
         }
 
     // Initialize the already covered lines of the matrix to be covered exactly
@@ -2136,7 +2136,7 @@ sudoku_solve (int g[GRID_SIZE][GRID_SIZE], method method, findSolutions find)
     sudoku_on_message ((uintptr_t) sudoku, get_message_args (rule, 0));
 
     // Freeing all.
-    dlx_univers_destroy (sudoku);
+    dlx_universe_destroy (sudoku);
   }
   return (NONE);
 }
